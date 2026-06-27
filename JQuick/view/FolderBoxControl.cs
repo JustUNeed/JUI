@@ -5,8 +5,10 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls.Primitives;
+using System.Windows.Threading;
 
 namespace JQuick
 {
@@ -14,6 +16,8 @@ namespace JQuick
     /// 文件夹收纳控件(基于 JuiGrid)。
     /// 拖入文件夹 → 添加一项; 拖文件到某项上 → 移动文件进该文件夹; 点击项 → 打开文件夹。
     /// 收纳的文件夹路径列表持久化到 folders.json。
+    /// 优化点: 启动读取配置放后台线程, 文件夹有效性校验也在后台, 数据一次性批量灌入,
+    ///         避免启动白屏卡顿。文件数 / 图标由 FolderItem 异步懒加载。
     /// </summary>
     public class FolderBoxControl : JuiGrid
     {
@@ -21,8 +25,6 @@ namespace JQuick
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(FolderBoxControl),
                 new FrameworkPropertyMetadata(typeof(JuiGrid)));
-
-
 
             // 捕获模板里所有名为 "PART_DeleteButton" 的按钮点击
             EventManager.RegisterClassHandler(
@@ -39,12 +41,13 @@ namespace JQuick
 
         public FolderBoxControl()
         {
-            AllowDropOnItem = true;   // 关键: 允许"拖到某一项上" → 移动文件进去
+            AllowDropOnItem = true;
+            ItemPreparing = item =>
+            {
+                if (item is FolderItem f) f.EnsureLoaded();
+            };
             Loaded += OnFirstLoaded;
         }
-
-
-
 
         private static void OnAnyButtonClick(object sender, RoutedEventArgs e)
         {
@@ -60,27 +63,44 @@ namespace JQuick
             }
         }
 
-
-
         private bool _inited;
         private void OnFirstLoaded(object sender, RoutedEventArgs e)
         {
             if (_inited) return;
             _inited = true;
 
-            _store = new FolderBoxStore(ConfigDir);
-
+            // 行为契约同步接好, 不耗时
             ExternalDropHandler = HandleExternalDrop;   // 拖到空白 → 添加文件夹项
-            ItemDropped = HandleItemDropped;    // 拖到某项上 → 移动文件进文件夹
-            ContentChanged = () => _store.Save(_items.Select(f => f.Path));
+            ItemDropped = HandleItemDropped;            // 拖到某项上 → 移动文件进文件夹
+            ContentChanged = () => _store?.Save(_items.Select(f => f.Path));
             LeftClick = item => OpenFolder(((FolderItem)item).Path);
 
             ItemsSource = _items;
 
-            // 启动恢复: 只保留仍存在的文件夹
-            foreach (var path in _store.Load())
-                if (Directory.Exists(path))
-                    _items.Add(new FolderItem(path));
+            // 关键: 读取配置 + 校验文件夹是否存在都放后台, 不阻塞首帧
+            _ = InitializeAsync();
+        }
+
+        private async Task InitializeAsync()
+        {
+            // 1) 后台: 构造 store(创建目录)、读 folders.json、过滤掉已不存在的文件夹
+            List<string> valid = await Task.Run(() =>
+            {
+                _store = new FolderBoxStore(ConfigDir);
+                return _store.Load().Where(Directory.Exists).ToList();
+            });
+
+            if (valid.Count == 0) return;
+
+            // 2) 回 UI 线程, 低优先级批量灌入(首帧先画出来), 批量期间抑制逐项高度重算
+            await Dispatcher.InvokeAsync(() =>
+            {
+                using (BulkUpdate())
+                {
+                    foreach (var path in valid)
+                        _items.Add(new FolderItem(path));
+                }
+            }, DispatcherPriority.Background);
         }
 
         // 拖到空白/间隙: 只接受文件夹, 每个文件夹添加成一项
@@ -104,19 +124,20 @@ namespace JQuick
         {
             if (target is not FolderItem folder) return;
             if (!Directory.Exists(folder.Path)) return;
-
-            // 本场景是外部文件拖入, rawData 有值
             if (rawData == null || !rawData.GetDataPresent(DataFormats.FileDrop)) return;
 
             var paths = (string[])rawData.GetData(DataFormats.FileDrop);
-            int moved = 0;
-            foreach (var src in paths)
-            {
-                if (MoveInto(src, folder.Path)) moved++;
-            }
 
-            if (moved > 0)
-                folder.RefreshCount();   // 更新该文件夹项的显示(如文件数)
+            // 文件移动也放后台, 避免大文件/多文件时卡 UI; 完成后回主线程刷新计数
+            _ = Task.Run(() =>
+            {
+                int moved = 0;
+                foreach (var src in paths)
+                    if (MoveInto(src, folder.Path)) moved++;
+
+                if (moved > 0)
+                    folder.Dispatcher_RefreshCount();   // 见 FolderItem: 线程安全的刷新
+            });
         }
 
         private static bool MoveInto(string src, string destDir)
@@ -125,21 +146,19 @@ namespace JQuick
             {
                 if (File.Exists(src))
                 {
-                    string dest = Path.Combine(destDir, Path.GetFileName(src));
-                    dest = MakeUnique(dest);
+                    string dest = MakeUnique(Path.Combine(destDir, Path.GetFileName(src)));
                     File.Move(src, dest);
                     return true;
                 }
                 if (Directory.Exists(src))
                 {
-                    // 拖进来的是子文件夹: 整体移动
-                    string dest = Path.Combine(destDir, Path.GetFileName(src.TrimEnd(Path.DirectorySeparatorChar)));
-                    dest = MakeUniqueDir(dest);
+                    string dest = MakeUniqueDir(Path.Combine(
+                        destDir, Path.GetFileName(src.TrimEnd(Path.DirectorySeparatorChar))));
                     Directory.Move(src, dest);
                     return true;
                 }
             }
-            catch { /* 跨盘/占用/权限等忽略, 也可在此提示 */ }
+            catch { /* 跨盘/占用/权限等忽略 */ }
             return false;
         }
 

@@ -3,21 +3,23 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 
 namespace JQuick
 {
     /// <summary>
     /// 图片剪贴板控件(JQuick 二次开发, 基于 JuiGrid)。
     /// 内置: 缓存目录管理、拖入(本地复制/网络下载)、顺序持久化、启动恢复。
-    /// 使用者只需在 XAML 放置并给 ItemTemplate(数据项类型 Photo)。
+    /// 优化点: 启动扫盘放后台线程, 数据一次性批量灌入, 灌入期间抑制逐项高度重算,
+    ///         避免启动白屏卡顿。
     /// </summary>
     public class ImageClipboardControl : JuiGrid
     {
         static ImageClipboardControl()
         {
-            // 子类复用 JuiGrid 的默认样式
             DefaultStyleKeyProperty.OverrideMetadata(typeof(ImageClipboardControl),
                 new FrameworkPropertyMetadata(typeof(JuiGrid)));
         }
@@ -35,11 +37,11 @@ namespace JQuick
         {
             Loaded += OnFirstLoaded;
 
+            // 容器进入视口才解码缩略图(JuiGrid 虚拟化时回调), 这步本身是懒加载, 保持不变
             ItemPreparing = item =>
             {
                 if (item is Photo p) p.EnsureThumbnail();
             };
-
         }
 
         private bool _inited;
@@ -48,17 +50,49 @@ namespace JQuick
             if (_inited) return;
             _inited = true;
 
-            _store = new ImageClipboardStore(CacheDir);
-
+            // 行为契约可以同步接好, 不耗时
             FilePathSelector = item => (item as Photo)?.Path;
-            ContentChanged = () => _store.SaveOrder(_items.Select(p => p.Path));
+            ContentChanged = () => _store?.SaveOrder(_items.Select(p => p.Path));
             ExternalDropHandler = HandleExternalDrop;
             LeftClick = item => ImageClicked?.Invoke((Photo)item);
 
             ItemsSource = _items;
 
-            foreach (var path in _store.LoadOrdered())
-                _items.Add(new Photo { Path = path });
+            // 关键: 扫盘 + 初始化放后台, 不阻塞首帧渲染
+            _ = InitializeAsync();
+        }
+
+        private async Task InitializeAsync()
+        {
+            // 1) 后台线程构造 store(会创建目录)并扫描已保存顺序
+            List<string> paths = await Task.Run(() =>
+            {
+                _store = new ImageClipboardStore(CacheDir);
+                return _store.LoadOrdered();
+            });
+
+            if (paths.Count == 0) return;
+
+            // 2) 回 UI 线程, 在低优先级上批量灌入(让首帧先画出来)
+            await Dispatcher.InvokeAsync(() =>
+            {
+                BulkAdd(paths.Select(p => new Photo { Path = p }));
+            }, DispatcherPriority.Background);
+        }
+
+        /// <summary>
+        /// 批量添加: 灌入期间抑制 CollectionChanged 风暴带来的逐项高度重算,
+        /// 全部加完只重算一次。
+        /// </summary>
+        private void BulkAdd(IEnumerable<Photo> photos)
+        {
+            using (BulkUpdate())
+            {
+                foreach (var p in photos)
+                    _items.Add(p);
+            }
+            // 注: ObservableCollection 每次 Add 仍会发通知, 但虚拟化下只有视口内
+            //     的容器会真正实例化并触发 ItemPreparing(缩略图懒加载), 不会一次性解码所有图。
         }
 
         private IEnumerable<object>? HandleExternalDrop(IDataObject data)
