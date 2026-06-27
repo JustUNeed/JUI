@@ -6,46 +6,99 @@
         xmlns:local="clr-namespace:JQuick"
         xmlns:jui="clr-namespace:JUI.Controls;assembly=JUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
-         Background="{DynamicResource Jui.Background}">
+        Title="图片剪贴板" Height="500" Width="400"
+       >
 
-    <jui:JuiGrid x:Name="Grid" AllowDropOnItem = "true"  ItemWidth="80" ItemHeight="80"  ItemSpacing="5" MaxRows="3"  >
-        <jui:JuiGrid.ItemTemplate>
-            <DataTemplate>
-                <Grid x:Name="ItemRoot"    Width="{Binding ItemWidth, RelativeSource={RelativeSource AncestorType=jui:JuiGrid}}"
-      Height="{Binding ItemHeight, RelativeSource={RelativeSource AncestorType=jui:JuiGrid}}">
-                  
-                    <Border  CornerRadius="0">
-                        <StackPanel>
-                            <Image Source="{Binding Thumbnail}"  Stretch="Fill"/>
-                      
+    <DockPanel Margin="8">
+        <!-- 图片剪贴板 -->
+        <local:ImageClipboardControl x:Name="ClipboardGrid"
+                                     DockPanel.Dock="Top"
+                                     ItemWidth="80" ItemHeight="80"
+                                     ItemSpacing="6" MaxRows="3"
+                                     ItemCornerRadius="8">
+            <local:ImageClipboardControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid x:Name="ItemRoot">
+                        <!-- 占位背景,始终在底层 -->
+                        <Border Background="#1A000000" CornerRadius="6"/>
+                        
+                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
+
+                        <Button x:Name="PART_DeleteButton" Content="✕" Width="18" Height="18"
+        HorizontalAlignment="Right" VerticalAlignment="Top" Margin="2">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Visibility" Value="Hidden"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                    </Grid>
+
+                </DataTemplate>
+            </local:ImageClipboardControl.ItemTemplate>
+        </local:ImageClipboardControl>
+
+        <!-- 快捷方式启动器 -->
+        <local:AppLauncherControl x:Name="Launcher"
+                                  ItemWidth="80" ItemHeight="90"
+                                  ItemSpacing="6" ItemCornerRadius="8">
+            <local:AppLauncherControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel>
+                        <Grid Width="48" Height="48">
+                            <Border Background="#1A000000" CornerRadius="4"/>
+                            <!-- 占位 -->
+                            <Image Source="{Binding Icon}"/>
+                            <!-- 加载完才显示 -->
+                        </Grid>
+                        <TextBlock Text="{Binding DisplayName}" TextAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource Jui.Text.Primary}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </local:AppLauncherControl.ItemTemplate>
+        </local:AppLauncherControl>
+
+        <local:FolderBoxControl x:Name="FolderBox"
+                        ItemWidth="100" ItemHeight="100"
+                        ItemSpacing="6" ItemCornerRadius="8">
+            <local:FolderBoxControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid x:Name="ItemRoot" Background="Transparent">
+                        <StackPanel VerticalAlignment="Center">
+                    
+                            <TextBlock Text="{Binding DisplayName}" TextAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Jui.Text.Primary}"/>
+                         
                         </StackPanel>
-                    </Border>
 
-                    <!-- 叉叉: 自己绑定父 Grid 的 IsMouseOver 决定显隐 -->
-                    <Button Content="✕" Width="20" Height="20"
-            HorizontalAlignment="Right" VerticalAlignment="Top"
-            Margin="0"
-            Click="DeleteBtn_Click">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Visibility" Value="Hidden"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsMouseOver,
-                                 RelativeSource={RelativeSource AncestorType=Grid}}"
-                                 Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                </Grid>
+                        <Button Content="✕" Width="18" Height="18"
+                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Margin="2" Click="RemoveFolder_Click">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Visibility" Value="Hidden"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMouseOver,
+                                             RelativeSource={RelativeSource AncestorType=Grid}}"
+                                             Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
+                </DataTemplate>
+            </local:FolderBoxControl.ItemTemplate>
+        </local:FolderBoxControl>
 
-            </DataTemplate>
-        </jui:JuiGrid.ItemTemplate>
-
-    </jui:JuiGrid>
-
-
+    </DockPanel>
 </Window>

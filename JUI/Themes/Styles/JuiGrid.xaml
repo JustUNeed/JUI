@@ -68,35 +68,57 @@
                             Value="{Binding ItemSpacing,
                                             RelativeSource={RelativeSource AncestorType={x:Type jui:JuiGrid}},
                                             Converter={StaticResource Jui.SpacingToMargin}}"/>
+                    <Setter Property="Width"
+            Value="{Binding ItemWidth, RelativeSource={RelativeSource AncestorType={x:Type jui:JuiGrid}}}"/>
+                    <Setter Property="Height"
+            Value="{Binding ItemHeight, RelativeSource={RelativeSource AncestorType={x:Type jui:JuiGrid}}}"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="{x:Type ListBoxItem}">
-                                <!-- 这个 Border 是高亮的载体 -->
-                                <Border x:Name="Bd"
-                                        Background="{TemplateBinding Background}"
-                                        BorderBrush="Transparent"
-                                        BorderThickness="0"
-                                        CornerRadius="6"
-                                      
-                                        SnapsToDevicePixels="True">
-                                    <ContentPresenter/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <!-- 拖动悬停到本项上 → 强调描边 + 激活态底色 -->
-                                    <Trigger Property="jui:JuiGrid.IsDropTarget" Value="True">
-                                        <Setter TargetName="Bd" Property="BorderBrush"
-                                                Value="{DynamicResource Jui.Accent}"/>
-                                        <Setter TargetName="Bd" Property="Background"
-                                                Value="{DynamicResource Jui.Surface.Active}"/>
-                                    </Trigger>
+                                <Grid>
+                                    <!-- 圆角裁剪容器: CornerRadius 取自 JuiGrid.ItemCornerRadius -->
+                                    <Border x:Name="ClipBorder"
+                CornerRadius="{Binding ItemCornerRadius, RelativeSource={RelativeSource AncestorType={x:Type jui:JuiGrid}}}"
+                Background="Transparent"
+                SnapsToDevicePixels="True">
+                                        <Border.OpacityMask>
+                                            <!-- 用同样圆角的 VisualBrush 当遮罩, 把内容裁成圆角 -->
+                                            <VisualBrush>
+                                                <VisualBrush.Visual>
+                                                    <Border Background="White"
+                                CornerRadius="{Binding ItemCornerRadius, RelativeSource={RelativeSource AncestorType={x:Type jui:JuiGrid}}}"
+                                Width="{Binding ActualWidth, ElementName=ClipBorder}"
+                                Height="{Binding ActualHeight, ElementName=ClipBorder}"/>
+                                                </VisualBrush.Visual>
+                                            </VisualBrush>
+                                        </Border.OpacityMask>
+                                        <ContentPresenter/>
+                                    </Border>
 
-                                    <!-- 选中态 -->
+                                    <!-- 反馈层: 描边 / 悬停 / 选中 / 拖放, 叠在内容之上, 不挡鼠标 -->
+                                    <Border x:Name="Bd"
+                CornerRadius="{Binding ItemCornerRadius, RelativeSource={RelativeSource AncestorType={x:Type jui:JuiGrid}}}"
+                BorderBrush="Transparent" BorderThickness="0"
+                Background="Transparent"
+                IsHitTestVisible="False"
+                SnapsToDevicePixels="True"/>
+                                </Grid>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#33000000"/>
+                                    </Trigger>
+                                    <Trigger Property="jui:JuiGrid.IsDropTarget" Value="True">
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Jui.Accent}"/>
+                                        <Setter TargetName="Bd" Property="Background" Value="#330078D4"/>
+                                    </Trigger>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter TargetName="Bd" Property="BorderBrush"
-                                                Value="{DynamicResource Jui.Accent}"/>
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Jui.Accent}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
+
+
+
                         </Setter.Value>
                     </Setter>
                 </Style>

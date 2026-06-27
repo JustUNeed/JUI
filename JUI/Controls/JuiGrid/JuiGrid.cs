@@ -7,7 +7,6 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Threading;
 
 namespace JUI.Controls
 {
@@ -15,7 +14,8 @@ namespace JUI.Controls
     /// JUI 通用网格控件: 多列布局 + 虚拟化 + 拖动排序 + 拖入/拖出 + 移入项(类资源管理器)。
     /// 落点判定: 间隙/空白 = 插入或排序; 项主体上 = 移入该项(需开启 AllowDropOnItem)。
     /// 外部拖入的数据格式不由控件判断, 统一通过 ExternalDropHandler 交给用户解析。
-    /// 项点击通过 ItemClick 事件暴露; 项内控件(如删除按钮)自行处理并标记 Handled 即可避免触发项点击。
+    /// 单选; 左右键点击分别通过 LeftClick / RightClick 暴露(项内控件标记 Handled 即可不触发)。
+    /// 高度由控件内部按数据量与宽度自动算成固定值, 给虚拟化提供稳定视口; 使用者只需设 ItemsSource。
     /// </summary>
     public class JuiGrid : ListBox
     {
@@ -23,6 +23,9 @@ namespace JUI.Controls
 
         private InsertionAdorner? _insertionAdorner;
         private int _lastInsertIndex = -2;   // 缓存上次插入位置, -2 表示无效初值
+
+
+        private ScrollViewer? _scrollViewer;
 
         static JuiGrid()
         {
@@ -34,14 +37,16 @@ namespace JUI.Controls
         public JuiGrid()
         {
             AllowDrop = true;
+            SelectionMode = SelectionMode.Single;   // 永远单选
 
             PreviewMouseLeftButtonDown += OnPreviewMouseLeftButtonDown;
             PreviewMouseMove += OnPreviewMouseMove;
-            MouseLeftButtonUp += OnMouseLeftButtonUp;   // 冒泡: 项内控件先处理, Handled 后不触发项点击
+            MouseLeftButtonUp += OnMouseLeftButtonUp;     // 冒泡: 项内控件先处理, Handled 后不触发
+            MouseRightButtonUp += OnMouseRightButtonUp;   // 右键点击
             DragOver += OnDragOver;
             DragLeave += OnDragLeave;
             Drop += OnDrop;
-            Loaded += (_, _) => UpdateAutoHeight();
+            Loaded += (_, _) => RecomputeHeight();        // 首次布局完成, ActualWidth 已有值
         }
 
         // ================= 对外契约 =================
@@ -57,7 +62,7 @@ namespace JUI.Controls
         public Func<IDataObject, IEnumerable<object>?>? ExternalDropHandler { get; set; }
 
         /// <summary>列表自身增删改(插入/排序/添加)时调用, 供持久化。</summary>
-        public Action? OnContentChanged { get; set; }
+        public Action? ContentChanged { get; set; }
 
         /// <summary>
         /// 把东西"放进某一项"时调用(不改变当前列表)。
@@ -65,13 +70,16 @@ namespace JUI.Controls
         ///       原始拖放数据(外部拖入时有值, 内部拖动时为 null),
         ///       目标项。
         /// </summary>
-        public Action<object?, IDataObject?, object>? OnItemDroppedOnItem { get; set; }
+        public Action<object?, IDataObject?, object>? ItemDropped { get; set; }
 
         /// <summary>是否允许"放进某一项"。关闭时一律按插入/添加处理。</summary>
         public bool AllowDropOnItem { get; set; } = false;
 
-        /// <summary>项被点击时触发(点在项内控件并标记 Handled 的不会触发)。</summary>
-        public event EventHandler<JuiItemClickEventArgs>? ItemClick;
+        /// <summary>项被左键点击时调用(点在项内控件并标记 Handled 的不会触发)。参数: 数据项。</summary>
+        public Action<object>? LeftClick { get; set; }
+
+        /// <summary>项被右键点击时调用(点在项内控件并标记 Handled 的不会触发)。参数: 数据项。</summary>
+        public Action<object>? RightClick { get; set; }
 
         // ===== 附加属性: 标记当前高亮的放入目标项, 供样式 Trigger 使用 =====
         public static readonly DependencyProperty IsDropTargetProperty =
@@ -82,44 +90,54 @@ namespace JUI.Controls
         public static void SetIsDropTarget(DependencyObject o, bool v) => o.SetValue(IsDropTargetProperty, v);
         public static bool GetIsDropTarget(DependencyObject o) => (bool)o.GetValue(IsDropTargetProperty);
 
+        // ================= 数据源安全访问 =================
+
+        /// <summary>取出可写列表; 绑定的源不可写(只读视图等)时返回 null, 避免崩溃。</summary>
+        private IList? WritableList =>
+            ItemsSource is IList { IsReadOnly: false, IsFixedSize: false } list ? list : null;
+
         // ================= 对外公开方法 =================
 
         public void AddItem(object item)
         {
-            if (ItemsSource is IList list && item != null)
+            var list = WritableList;
+            if (list != null && item != null)
             {
                 list.Add(item);
-                OnContentChanged?.Invoke();
+                ContentChanged?.Invoke();
             }
         }
 
         public void InsertItem(int index, object item)
         {
-            if (ItemsSource is IList list && item != null)
+            var list = WritableList;
+            if (list != null && item != null)
             {
                 if (index < 0) index = 0;
                 if (index > list.Count) index = list.Count;
                 list.Insert(index, item);
-                OnContentChanged?.Invoke();
+                ContentChanged?.Invoke();
             }
         }
 
         public void RemoveItem(object item)
         {
-            if (ItemsSource is IList list && item != null)
+            var list = WritableList;
+            if (list != null && item != null)
             {
                 int i = list.IndexOf(item);
                 if (i >= 0)
                 {
                     list.RemoveAt(i);
-                    OnContentChanged?.Invoke();
+                    ContentChanged?.Invoke();
                 }
             }
         }
 
         public void MoveItem(int oldIndex, int newIndex)
         {
-            if (ItemsSource is not IList list) return;
+            var list = WritableList;
+            if (list == null) return;
             if (oldIndex < 0 || oldIndex >= list.Count) return;
 
             var item = list[oldIndex];
@@ -129,7 +147,7 @@ namespace JUI.Controls
             if (newIndex > list.Count) newIndex = list.Count;
             list.Insert(newIndex, item);
 
-            OnContentChanged?.Invoke();
+            ContentChanged?.Invoke();
         }
 
         public object? GetItemFromElement(DependencyObject? element)
@@ -142,7 +160,7 @@ namespace JUI.Controls
                 : null;
         }
 
-        // ================= 点击 =================
+        // ================= 点击(左/右键分开, 无双击) =================
 
         private bool _dragHappened;   // 本次按下后是否已发起拖动
 
@@ -154,12 +172,15 @@ namespace JUI.Controls
             var item = GetItemFromElement(e.OriginalSource as DependencyObject);
             if (item == null) return;   // 点在空白处
 
-            ItemClick?.Invoke(this, new JuiItemClickEventArgs
-            {
-                Item = item,
-                Button = MouseButton.Left,
-                ClickCount = e.ClickCount
-            });
+            LeftClick?.Invoke(item);
+        }
+
+        private void OnMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            var item = GetItemFromElement(e.OriginalSource as DependencyObject);
+            if (item == null) return;   // 点在空白处
+
+            RightClick?.Invoke(item);
         }
 
         // ================= 发起拖动 =================
@@ -266,7 +287,9 @@ namespace JUI.Controls
         {
             ClearDropTargetHighlight();
             RemoveAdorner();
-            if (ItemsSource is not IList list) return;
+
+            var list = WritableList;
+            if (list == null) return;
 
             bool isInternal = e.Data.GetDataPresent(JuiItemFormat);
             bool isExternal = !isInternal && ExternalDropHandler != null;
@@ -285,11 +308,11 @@ namespace JUI.Controls
                 {
                     var dragged = e.Data.GetData(JuiItemFormat);
                     if (dragged != null && !ReferenceEquals(dragged, targetItem))
-                        OnItemDroppedOnItem?.Invoke(dragged, null, targetItem);
+                        ItemDropped?.Invoke(dragged, null, targetItem);
                 }
                 else // 外部: 原始数据交给用户
                 {
-                    OnItemDroppedOnItem?.Invoke(null, e.Data, targetItem);
+                    ItemDropped?.Invoke(null, e.Data, targetItem);
                 }
                 e.Handled = true;
                 return;
@@ -321,7 +344,7 @@ namespace JUI.Controls
                         idx++;
                         added = true;
                     }
-                    if (added) OnContentChanged?.Invoke();
+                    if (added) ContentChanged?.Invoke();
                 }
             }
 
@@ -502,7 +525,7 @@ namespace JUI.Controls
         }
         public static readonly DependencyProperty ItemSpacingProperty =
             DependencyProperty.Register(nameof(ItemSpacing), typeof(double),
-                typeof(JuiGrid), new PropertyMetadata(0.0, (d, e) => ((JuiGrid)d).UpdateAutoHeight()));
+                typeof(JuiGrid), new PropertyMetadata(0.0, (d, e) => ((JuiGrid)d).RecomputeHeight()));
 
         /// <summary>最多显示几行, 超过则滚动。默认 3。</summary>
         public int MaxRows
@@ -512,7 +535,7 @@ namespace JUI.Controls
         }
         public static readonly DependencyProperty MaxRowsProperty =
             DependencyProperty.Register(nameof(MaxRows), typeof(int),
-                typeof(JuiGrid), new PropertyMetadata(3, (d, e) => ((JuiGrid)d).UpdateAutoHeight()));
+                typeof(JuiGrid), new PropertyMetadata(3, (d, e) => ((JuiGrid)d).RecomputeHeight()));
 
         /// <summary>每项容器的完整高度(不含间隔)。间隔由 ItemSpacing 控制。</summary>
         public double ItemHeight
@@ -522,7 +545,7 @@ namespace JUI.Controls
         }
         public static readonly DependencyProperty ItemHeightProperty =
             DependencyProperty.Register(nameof(ItemHeight), typeof(double),
-                typeof(JuiGrid), new PropertyMetadata(148.0, (d, e) => ((JuiGrid)d).UpdateAutoHeight()));
+                typeof(JuiGrid), new PropertyMetadata(148.0, (d, e) => ((JuiGrid)d).RecomputeHeight()));
 
         /// <summary>每项容器的完整宽度(不含间隔)。间隔由 ItemSpacing 控制。</summary>
         public double ItemWidth
@@ -532,86 +555,120 @@ namespace JUI.Controls
         }
         public static readonly DependencyProperty ItemWidthProperty =
             DependencyProperty.Register(nameof(ItemWidth), typeof(double),
-                typeof(JuiGrid), new PropertyMetadata(128.0, (d, e) => ((JuiGrid)d).UpdateAutoHeight()));
+                typeof(JuiGrid), new PropertyMetadata(128.0, (d, e) => ((JuiGrid)d).RecomputeHeight()));
 
-        // ================= 自动高度 =================
+
+
+
+        /// <summary>每个项的圆角半径。内容(包括图片)会被裁剪进此圆角内。</summary>
+        public CornerRadius ItemCornerRadius
+        {
+            get => (CornerRadius)GetValue(ItemCornerRadiusProperty);
+            set => SetValue(ItemCornerRadiusProperty, value);
+        }
+        public static readonly DependencyProperty ItemCornerRadiusProperty =
+            DependencyProperty.Register(nameof(ItemCornerRadius), typeof(CornerRadius),
+                typeof(JuiGrid), new PropertyMetadata(new CornerRadius(6)));
+
+
+
+        // 通知外部项目进入视口了 
+        public Action<object>? ItemPreparing;
+
+
+        // ================= 高度自治(控件内部, 使用者无感) =================
 
         protected override void OnItemsChanged(NotifyCollectionChangedEventArgs e)
         {
             base.OnItemsChanged(e);
-            UpdateAutoHeight();
-            // 布局完成后用真实行数再修正一次
-            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(UpdateAutoHeight));
+            RecomputeHeight();          // 数量变化
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {
             base.OnRenderSizeChanged(sizeInfo);
-            if (sizeInfo.WidthChanged) UpdateAutoHeight();
+            if (sizeInfo.WidthChanged)
+            {
+                RecomputeHeight();
+                ClampScrollOffset();   // 宽度变了 → 内容高度可能变矮 → 修正超界的滚动偏移
+            }
         }
 
-        private void UpdateAutoHeight()
+        protected override void PrepareContainerForItemOverride(DependencyObject element, object item)
+        {
+            base.PrepareContainerForItemOverride(element, item);
+            if (element is FrameworkElement fe)
+            {
+                fe.Width = ItemWidth;
+                fe.Height = ItemHeight;
+            }
+
+            ItemPreparing?.Invoke(item);
+        }
+
+
+
+
+        /// <summary>
+        /// 根据当前宽度和数据量, 把固定高度写入控件。
+        /// 宽度尚未就绪(ActualWidth=0)时跳过, 等 Loaded / 尺寸变化时自然补算。
+        /// 用确定高度给虚拟化提供固定视口, 一次测量即正确, 无需任何手动刷新。
+        /// </summary>
+        private void RecomputeHeight()
         {
             if (ItemHeight <= 0) return;
+            if (ActualWidth <= 0) return;                  // 关键: 宽度没就绪就不算, 不写错值
             if (ItemsSource is not IList list) return;
 
+            double cellWidth = ItemWidth + ItemSpacing * 2;
             double cellHeight = ItemHeight + ItemSpacing * 2;
 
-            int count = list.Count;
-            if (count == 0)
-            {
-                MaxHeight = cellHeight + Padding.Top + Padding.Bottom;
-                return;
-            }
-
-            int rows = CountRealRows();              // 优先真实行数
-            if (rows <= 0) rows = EstimateRows(count); // 容器未生成时回退估算
-
-            int shownRows = Math.Min(rows, Math.Max(1, MaxRows));
-            MaxHeight = shownRows * cellHeight + Padding.Top + Padding.Bottom;
-        }
-
-        /// <summary>遍历已生成容器, 用不同的 Y 坐标统计真实行数。</summary>
-        private int CountRealRows()
-        {
-            if (ItemsSource is not IList list) return 0;
-
-            var ys = new List<double>();
-            for (int i = 0; i < list.Count; i++)
-            {
-                if (ItemContainerGenerator.ContainerFromIndex(i) is not ListBoxItem c) continue;
-                if (!c.IsVisible) continue;
-
-                double y = c.TranslatePoint(new Point(0, 0), this).Y;
-                if (!ys.Exists(v => Math.Abs(v - y) < 1.0)) ys.Add(y);
-            }
-            return ys.Count;
-        }
-
-        /// <summary>容器尚未生成时, 按宽度估算行数(含间隔)。</summary>
-        private int EstimateRows(int count)
-        {
-            double cellWidth = ItemWidth + ItemSpacing * 2;
-            if (cellWidth <= 0) return 1;
-
-            double available = (ActualWidth > 0 ? ActualWidth : Width)
-                               - Padding.Left - Padding.Right
+            double available = ActualWidth - Padding.Left - Padding.Right
                                - BorderThickness.Left - BorderThickness.Right;
-            if (available <= 0) return 1;
 
-            int cols = Math.Max(1, (int)(available / cellWidth));
-            return (int)Math.Ceiling(count / (double)cols);
+            int cols = available > 0 && cellWidth > 0
+                ? Math.Max(1, (int)(available / cellWidth))
+                : 1;
+
+            int count = list.Count;
+            int rows = count <= 0 ? 1 : (int)Math.Ceiling(count / (double)cols);
+            int shownRows = Math.Min(rows, Math.Max(1, MaxRows));
+            Height = shownRows * cellHeight + Padding.Top + Padding.Bottom
+                     + BorderThickness.Top + BorderThickness.Bottom;
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[RecomputeHeight] count={list.Count}, cols={cols}, rows={rows}, shownRows={shownRows}, Height={Height}");
         }
-    }
 
-    /// <summary>JuiGrid 项点击事件参数。</summary>
-    public class JuiItemClickEventArgs : EventArgs
-    {
-        /// <summary>被点击的数据项。</summary>
-        public required object Item { get; init; }
-        /// <summary>触发的鼠标键。</summary>
-        public MouseButton Button { get; init; }
-        /// <summary>点击次数(1 = 单击, 2 = 双击)。</summary>
-        public int ClickCount { get; init; }
+
+
+
+
+
+
+
+        public override void OnApplyTemplate()
+        {
+            base.OnApplyTemplate();
+            _scrollViewer = GetTemplateChild("PART_Scroll") as ScrollViewer;
+        }
+
+        /// <summary>
+        /// 内容高度变化后, 若当前垂直滚动偏移超出了新的可滚动范围, 把它拉回最大值。
+        /// 解决"拉到底再变宽, 内容变矮但滚动条没回收, 底部空一行"的问题。
+        /// </summary>
+        private void ClampScrollOffset()
+        {
+            if (_scrollViewer == null) return;
+
+            // 等本轮布局完成、ScrollableHeight 更新后再夹, 否则拿到的还是旧值
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
+            {
+                if (_scrollViewer == null) return;
+                double max = _scrollViewer.ScrollableHeight;
+                if (_scrollViewer.VerticalOffset > max)
+                    _scrollViewer.ScrollToVerticalOffset(max);
+            }));
+        }
     }
 }

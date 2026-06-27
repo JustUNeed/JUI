@@ -13,7 +13,14 @@ namespace JQuick
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-            ThemeManager.Initialize();   // 就这一行, 自动读取上次保存的主题
+            try
+            {
+                ThemeManager.Initialize();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("主题加载失败:\n" + ex.ToString());
+            }
         }
     }
 
