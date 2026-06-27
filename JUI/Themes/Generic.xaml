@@ -1,0 +1,11 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.MergedDictionaries>
+        <!-- 以后每加一个控件, 在这里加一行 -->
+        <ResourceDictionary Source="/JUI;component/Themes/Controls/JuiGrid.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+    
+    
+    
+    
+</ResourceDictionary>

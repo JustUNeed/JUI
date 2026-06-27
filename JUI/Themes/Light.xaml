@@ -1,0 +1,16 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- 背景 -->
+    <SolidColorBrush x:Key="Jui.Background"        Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Jui.Surface"           Color="#F3F3F3"/>
+    <!-- 前景文字 -->
+    <SolidColorBrush x:Key="Jui.Foreground"        Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="Jui.ForegroundMuted"   Color="#666666"/>
+    <!-- 边框 / 分隔线 -->
+    <SolidColorBrush x:Key="Jui.Border"            Color="#D0D0D0"/>
+    <!-- 强调色(选中/高亮) -->
+    <SolidColorBrush x:Key="Jui.Accent"            Color="#0078D4"/>
+    <SolidColorBrush x:Key="Jui.AccentForeground"  Color="#FFFFFF"/>
+
+</ResourceDictionary>
