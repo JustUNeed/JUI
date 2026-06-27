@@ -99,27 +99,60 @@ namespace JQuick
         }
 
         /// <summary>
-        /// 下载一张网络图片进缓存目录, 返回新路径; 失败返回 null。
+        /// 下载一张网络图片进缓存目录, 返回新路径; 失败(含非图片内容)返回 null。
+        /// 会校验 Content-Type 与文件魔数, 避免把网页等非图片内容存成损坏的图片文件。
         /// </summary>
         public async Task<string?> ImportUrlAsync(string url)
         {
+            string? dest = null;
             try
             {
                 using var resp = await Http.GetAsync(url);
                 if (!resp.IsSuccessStatusCode) return null;
 
-                string ext = GuessExtension(url, resp.Content.Headers.ContentType?.MediaType);
-                string dest = NewUniquePath(ext);
+                // 1) Content-Type 必须是 image/*
+                string? mediaType = resp.Content.Headers.ContentType?.MediaType;
+                if (mediaType == null || !mediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                    return null;   // 不是图片(很可能是网页), 直接判失败
 
-                await using var fs = File.Create(dest);
-                await resp.Content.CopyToAsync(fs);
+                byte[] bytes = await resp.Content.ReadAsByteArrayAsync();
+
+                // 2) 校验魔数, 确认确实是图片数据
+                if (!LooksLikeImage(bytes)) return null;
+
+                string ext = GuessExtension(url, mediaType);
+                dest = NewUniquePath(ext);
+                await File.WriteAllBytesAsync(dest, bytes);
                 return dest;
             }
             catch
             {
+                // 出错时清掉可能已创建的半成品文件
+                try { if (dest != null && File.Exists(dest)) File.Delete(dest); } catch { }
                 return null;
             }
         }
+
+        /// <summary>用文件头魔数粗判是否为常见图片格式。</summary>
+        private static bool LooksLikeImage(byte[] b)
+        {
+            if (b == null || b.Length < 12) return false;
+
+            // JPEG: FF D8 FF
+            if (b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF) return true;
+            // PNG: 89 50 4E 47 0D 0A 1A 0A
+            if (b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47) return true;
+            // GIF: "GIF8"
+            if (b[0] == 0x47 && b[1] == 0x49 && b[2] == 0x46 && b[3] == 0x38) return true;
+            // BMP: "BM"
+            if (b[0] == 0x42 && b[1] == 0x4D) return true;
+            // WEBP: "RIFF"...."WEBP"
+            if (b[0] == 0x52 && b[1] == 0x49 && b[2] == 0x46 && b[3] == 0x46 &&
+                b[8] == 0x57 && b[9] == 0x45 && b[10] == 0x42 && b[11] == 0x50) return true;
+
+            return false;
+        }
+
 
         // ============ 删除 ============
 

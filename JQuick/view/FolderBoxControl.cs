@@ -15,9 +15,9 @@ namespace JQuick
     /// <summary>
     /// 文件夹收纳控件(基于 JuiGrid)。
     /// 拖入文件夹 → 添加一项; 拖文件到某项上 → 移动文件进该文件夹; 点击项 → 打开文件夹。
-    /// 收纳的文件夹路径列表持久化到 folders.json。
+    /// 只显示文件夹名称(无图标、无文件数)。收纳的文件夹路径列表持久化到 folders.json。
     /// 优化点: 启动读取配置放后台线程, 文件夹有效性校验也在后台, 数据一次性批量灌入,
-    ///         避免启动白屏卡顿。文件数 / 图标由 FolderItem 异步懒加载。
+    ///         避免启动白屏卡顿。文件移动也放后台, 避免大文件/多文件时卡 UI。
     /// </summary>
     public class FolderBoxControl : JuiGrid
     {
@@ -42,10 +42,6 @@ namespace JQuick
         public FolderBoxControl()
         {
             AllowDropOnItem = true;
-            ItemPreparing = item =>
-            {
-                if (item is FolderItem f) f.EnsureLoaded();
-            };
             Loaded += OnFirstLoaded;
         }
 
@@ -128,15 +124,11 @@ namespace JQuick
 
             var paths = (string[])rawData.GetData(DataFormats.FileDrop);
 
-            // 文件移动也放后台, 避免大文件/多文件时卡 UI; 完成后回主线程刷新计数
+            // 文件移动放后台, 避免大文件/多文件时卡 UI
             _ = Task.Run(() =>
             {
-                int moved = 0;
                 foreach (var src in paths)
-                    if (MoveInto(src, folder.Path)) moved++;
-
-                if (moved > 0)
-                    folder.Dispatcher_RefreshCount();   // 见 FolderItem: 线程安全的刷新
+                    MoveInto(src, folder.Path);
             });
         }
 

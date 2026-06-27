@@ -2,10 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 
 namespace JQuick
@@ -13,8 +15,8 @@ namespace JQuick
     /// <summary>
     /// 图片剪贴板控件(JQuick 二次开发, 基于 JuiGrid)。
     /// 内置: 缓存目录管理、拖入(本地复制/网络下载)、顺序持久化、启动恢复。
-    /// 优化点: 启动扫盘放后台线程, 数据一次性批量灌入, 灌入期间抑制逐项高度重算,
-    ///         避免启动白屏卡顿。
+    /// 体验: 左键打开预览(系统默认看图程序), 叉叉删除, 网络图片先占位下载完才出现。
+    /// 优化点: 启动扫盘放后台线程, 数据一次性批量灌入, 灌入期间抑制逐项高度重算。
     /// </summary>
     public class ImageClipboardControl : JuiGrid
     {
@@ -22,6 +24,12 @@ namespace JQuick
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(ImageClipboardControl),
                 new FrameworkPropertyMetadata(typeof(JuiGrid)));
+
+            // 捕获模板里所有名为 "PART_DeleteButton" 的按钮点击
+            EventManager.RegisterClassHandler(
+                typeof(ImageClipboardControl),
+                ButtonBase.ClickEvent,
+                new RoutedEventHandler(OnAnyButtonClick));
         }
 
         private ImageClipboardStore? _store;
@@ -30,18 +38,32 @@ namespace JQuick
         /// <summary>缓存目录; 不设则用 %AppData%\JQuick\clipboard。需在加载前设置。</summary>
         public string? CacheDir { get; set; }
 
-        /// <summary>左键点击一张图片时回调(参数: 图片项)。</summary>
+        /// <summary>左键点击一张图片时回调; 不设则使用默认行为(系统默认程序打开原图)。</summary>
         public Action<Photo>? ImageClicked { get; set; }
 
         public ImageClipboardControl()
         {
             Loaded += OnFirstLoaded;
 
-            // 容器进入视口才解码缩略图(JuiGrid 虚拟化时回调), 这步本身是懒加载, 保持不变
+            // 容器进入视口才解码缩略图(虚拟化时回调), 懒加载
             ItemPreparing = item =>
             {
                 if (item is Photo p) p.EnsureThumbnail();
             };
+        }
+
+        private static void OnAnyButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (e.OriginalSource is FrameworkElement fe &&
+                fe.Name == "PART_DeleteButton" &&
+                sender is ImageClipboardControl control)
+            {
+                if (control.GetItemFromElement(fe) is Photo item)
+                {
+                    control.Remove(item);
+                    e.Handled = true;
+                }
+            }
         }
 
         private bool _inited;
@@ -50,21 +72,24 @@ namespace JQuick
             if (_inited) return;
             _inited = true;
 
-            // 行为契约可以同步接好, 不耗时
             FilePathSelector = item => (item as Photo)?.Path;
-            ContentChanged = () => _store?.SaveOrder(_items.Select(p => p.Path));
+            ContentChanged = () => _store?.SaveOrder(_items.Where(p => !p.IsLoading).Select(p => p.Path));
             ExternalDropHandler = HandleExternalDrop;
-            LeftClick = item => ImageClicked?.Invoke((Photo)item);
+            LeftClick = item =>
+            {
+                var p = (Photo)item;
+                if (p.IsLoading) return;                 // 下载中不响应
+                if (ImageClicked != null) ImageClicked(p);
+                else OpenPreview(p.Path);                 // 默认行为: 系统看图程序打开原图
+            };
 
             ItemsSource = _items;
 
-            // 关键: 扫盘 + 初始化放后台, 不阻塞首帧渲染
             _ = InitializeAsync();
         }
 
         private async Task InitializeAsync()
         {
-            // 1) 后台线程构造 store(会创建目录)并扫描已保存顺序
             List<string> paths = await Task.Run(() =>
             {
                 _store = new ImageClipboardStore(CacheDir);
@@ -73,17 +98,12 @@ namespace JQuick
 
             if (paths.Count == 0) return;
 
-            // 2) 回 UI 线程, 在低优先级上批量灌入(让首帧先画出来)
             await Dispatcher.InvokeAsync(() =>
             {
                 BulkAdd(paths.Select(p => new Photo { Path = p }));
             }, DispatcherPriority.Background);
         }
 
-        /// <summary>
-        /// 批量添加: 灌入期间抑制 CollectionChanged 风暴带来的逐项高度重算,
-        /// 全部加完只重算一次。
-        /// </summary>
         private void BulkAdd(IEnumerable<Photo> photos)
         {
             using (BulkUpdate())
@@ -91,10 +111,7 @@ namespace JQuick
                 foreach (var p in photos)
                     _items.Add(p);
             }
-            // 注: ObservableCollection 每次 Add 仍会发通知, 但虚拟化下只有视口内
-            //     的容器会真正实例化并触发 ItemPreparing(缩略图懒加载), 不会一次性解码所有图。
         }
-
         private IEnumerable<object>? HandleExternalDrop(IDataObject data)
         {
             if (_store == null) return null;
@@ -115,20 +132,42 @@ namespace JQuick
                 var url = ((string)data.GetData(DataFormats.UnicodeText)).Trim();
                 if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 {
-                    DownloadAsync(url);
-                    return null;
+                    // 返回占位项, 由控件按落点插入(位置正确); 后台启动下载, 完成后填充
+                    var placeholder = new Photo { IsLoading = true };
+                    DownloadAsync(url, placeholder);
+                    return new object[] { placeholder };
                 }
             }
             return null;
         }
 
-        private async void DownloadAsync(string url)
+        private async void DownloadAsync(string url, Photo placeholder)
         {
             if (_store == null) return;
+
             var dest = await _store.ImportUrlAsync(url);
-            if (dest == null) return;
-            _items.Add(new Photo { Path = dest });
-            _store.SaveOrder(_items.Select(p => p.Path));
+
+            if (dest == null)
+            {
+                // 下载失败/非图片: 移除占位项(用 RemoveItem 以触发持久化)
+                RemoveItem(placeholder);
+                return;
+            }
+
+            // 下载成功: 在占位项原位填充真实图片, 解码缩略图
+            placeholder.OnDownloaded(dest);
+            _store.SaveOrder(_items.Where(p => !p.IsLoading).Select(p => p.Path));
+        }
+
+        /// <summary>用系统默认程序打开原图。</summary>
+        private static void OpenPreview(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                    Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            }
+            catch { }
         }
 
         /// <summary>删除一张图(从列表移除 + 物理删除缓存文件)。</summary>
@@ -136,7 +175,8 @@ namespace JQuick
         {
             if (item == null || _store == null) return;
             RemoveItem(item);
-            _store.DeleteFile(item.Path);
+            if (!string.IsNullOrEmpty(item.Path))
+                _store.DeleteFile(item.Path);
         }
     }
 }
