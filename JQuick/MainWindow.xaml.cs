@@ -30,12 +30,47 @@ namespace JQuick
             // ↓ 这行之前漏了, 拖出文件必须有它
             Grid.FilePathSelector = item => (item as Photo)?.Path;
 
-            // 告诉控件: 拖进来一个文件, 帮我包成 Photo
-            Grid.FileToItemConverter = path => new Photo
+
+
+
+
+            // 外部拖入: 用户自己分流
+            Grid.ExternalDropHandler = data =>
             {
-                Path = path,
-                Caption = System.IO.Path.GetFileName(path)
+                if (data.GetDataPresent(DataFormats.FileDrop))
+                {
+                    var paths = (string[])data.GetData(DataFormats.FileDrop);
+                    return paths.Select(path => new Photo
+                    {
+                        Path = path,
+                        Caption = System.IO.Path.GetFileName(path)
+                    });
+                }
+
+                // 浏览器拖来的通常是 URL 文本
+                if (data.GetDataPresent(DataFormats.UnicodeText))
+                {
+                    var url = ((string)data.GetData(DataFormats.UnicodeText)).Trim();
+                    if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                        return new[] { new Photo { Path = url, Caption = "网络图片" } };
+                }
+
+                return null;
             };
+
+
+            // 项点击
+            Grid.ItemClick += (s, e) =>
+            {
+                if (e.ClickCount == 2) MessageBox.Show("shuangji");   // 双击打开
+                else
+                {
+                    Photo item= (Photo)e.Item;
+                    MessageBox.Show(item.Path);
+                }
+                                   // 单击选中
+            };
+
 
             Grid.OnItemDroppedOnItem = (data, path, target) => MessageBox.Show("移入");
             // ↓↓↓ 初始化数据写在这里 ↓↓↓

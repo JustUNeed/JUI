@@ -1,7 +1,7 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiGrid.xaml"/>
+        <ResourceDictionary Source="pack://application:,,,/JUI;component/Themes/Styles/JuiScrollBar.xaml"/>
+        <!-- ↓ 以后新增全局样式, 只加在这里 -->
     </ResourceDictionary.MergedDictionaries>
-
 </ResourceDictionary>

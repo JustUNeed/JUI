@@ -9,15 +9,15 @@
         Title="MainWindow" Height="450" Width="800"
          Background="{DynamicResource Jui.Background}">
 
-    <jui:JuiGrid x:Name="Grid" AllowDropOnItem = "true"  ItemWidth="80" ItemHeight="80" MaxRows="3" Background="Black" >
+    <jui:JuiGrid x:Name="Grid" AllowDropOnItem = "true"  ItemWidth="80" ItemHeight="80"  ItemSpacing="5" MaxRows="3"  >
         <jui:JuiGrid.ItemTemplate>
             <DataTemplate>
                 <Grid x:Name="ItemRoot"    Width="{Binding ItemWidth, RelativeSource={RelativeSource AncestorType=jui:JuiGrid}}"
       Height="{Binding ItemHeight, RelativeSource={RelativeSource AncestorType=jui:JuiGrid}}">
                   
-                    <Border Background="Blue" CornerRadius="0">
+                    <Border  CornerRadius="0">
                         <StackPanel>
-                            <Image Source="{Binding Thumbnail}"  Stretch="UniformToFill"/>
+                            <Image Source="{Binding Thumbnail}"  Stretch="Fill"/>
                       
                         </StackPanel>
                     </Border>

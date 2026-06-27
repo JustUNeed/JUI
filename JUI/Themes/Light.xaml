@@ -1,16 +1,22 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- 背景 -->
-    <SolidColorBrush x:Key="Jui.Background"        Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="Jui.Surface"           Color="#F3F3F3"/>
-    <!-- 前景文字 -->
-    <SolidColorBrush x:Key="Jui.Foreground"        Color="#1A1A1A"/>
-    <SolidColorBrush x:Key="Jui.ForegroundMuted"   Color="#666666"/>
-    <!-- 边框 / 分隔线 -->
-    <SolidColorBrush x:Key="Jui.Border"            Color="#D0D0D0"/>
-    <!-- 强调色(选中/高亮) -->
-    <SolidColorBrush x:Key="Jui.Accent"            Color="#0078D4"/>
-    <SolidColorBrush x:Key="Jui.AccentForeground"  Color="#FFFFFF"/>
+    <!-- 表面 / 背景:窗口 → 默认 → 悬停 → 激活 -->
+    <SolidColorBrush x:Key="Jui.Surface.Window"  Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Jui.Surface.Default" Color="#F5F5F5"/>
+    <SolidColorBrush x:Key="Jui.Surface.Hover"   Color="#ECECEC"/>
+    <SolidColorBrush x:Key="Jui.Surface.Active"  Color="#DEDEDE"/>
+
+    <!-- 文字:主 → 次 → 禁用 -->
+    <SolidColorBrush x:Key="Jui.Text.Primary"    Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="Jui.Text.Secondary"  Color="#666666"/>
+    <SolidColorBrush x:Key="Jui.Text.Disabled"   Color="#AFAFAF"/>
+
+    <!-- 强调:默认 + 悬停 -->
+    <SolidColorBrush x:Key="Jui.Accent"          Color="#0078D4"/>
+    <SolidColorBrush x:Key="Jui.Accent.Hover"    Color="#1A8AE0"/>
+
+    <!-- 边框 / 分隔 -->
+    <SolidColorBrush x:Key="Jui.Border"          Color="#D0D0D0"/>
 
 </ResourceDictionary>

@@ -12,4 +12,10 @@
     <PackageReference Include="VirtualizingWrapPanel" Version="2.5.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Page Update="Themes\Styles\JuiScrollBar.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
 </Project>

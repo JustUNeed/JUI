@@ -1,16 +1,21 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace JUI.Controls
 {
     /// <summary>
-    /// JUI 通用网格控件: 多列布局 + 虚拟化 + 拖动排序 + 拖入/拖出文件 + 移入项(类资源管理器)。
-    /// 落点判定: 间隙/空白=插入或排序; 项主体上=移入该项(需开启 AllowDropOnItem)。
+    /// JUI 通用网格控件: 多列布局 + 虚拟化 + 拖动排序 + 拖入/拖出 + 移入项(类资源管理器)。
+    /// 落点判定: 间隙/空白 = 插入或排序; 项主体上 = 移入该项(需开启 AllowDropOnItem)。
+    /// 外部拖入的数据格式不由控件判断, 统一通过 ExternalDropHandler 交给用户解析。
+    /// 项点击通过 ItemClick 事件暴露; 项内控件(如删除按钮)自行处理并标记 Handled 即可避免触发项点击。
     /// </summary>
     public class JuiGrid : ListBox
     {
@@ -18,7 +23,6 @@ namespace JUI.Controls
 
         private InsertionAdorner? _insertionAdorner;
         private int _lastInsertIndex = -2;   // 缓存上次插入位置, -2 表示无效初值
-
 
         static JuiGrid()
         {
@@ -33,9 +37,11 @@ namespace JUI.Controls
 
             PreviewMouseLeftButtonDown += OnPreviewMouseLeftButtonDown;
             PreviewMouseMove += OnPreviewMouseMove;
+            MouseLeftButtonUp += OnMouseLeftButtonUp;   // 冒泡: 项内控件先处理, Handled 后不触发项点击
             DragOver += OnDragOver;
             DragLeave += OnDragLeave;
             Drop += OnDrop;
+            Loaded += (_, _) => UpdateAutoHeight();
         }
 
         // ================= 对外契约 =================
@@ -43,22 +49,29 @@ namespace JUI.Controls
         /// <summary>用户提供: 如何从数据项取出文件路径(用于拖出到外部)。</summary>
         public Func<object, string?>? FilePathSelector { get; set; }
 
-        /// <summary>用户提供: 如何把拖入的文件路径转成数据项。</summary>
-        public Func<string, object?>? FileToItemConverter { get; set; }
+        /// <summary>
+        /// 外部数据拖入时调用。控件不判断拖入格式, 把原始拖放数据全权交给用户解析
+        /// (文件 / 浏览器 URL / 文本 / 任意私有格式)。返回要插入的数据项集合;
+        /// 返回 null 或空表示不接受本次拖入。控件负责把返回的项插入到落点位置。
+        /// </summary>
+        public Func<IDataObject, IEnumerable<object>?>? ExternalDropHandler { get; set; }
 
         /// <summary>列表自身增删改(插入/排序/添加)时调用, 供持久化。</summary>
         public Action? OnContentChanged { get; set; }
 
         /// <summary>
         /// 把东西"放进某一项"时调用(不改变当前列表)。
-        /// 参数: 被拖的数据对象(内部拖动时是项数据; 外部拖入时是转换后的项, 可能为 null),
-        ///       文件路径(外部拖入时有值, 内部拖动时为 null),
+        /// 参数: 被拖的数据(内部拖动时是项数据; 外部拖入时为 null),
+        ///       原始拖放数据(外部拖入时有值, 内部拖动时为 null),
         ///       目标项。
         /// </summary>
-        public Action<object?, string?, object>? OnItemDroppedOnItem { get; set; }
+        public Action<object?, IDataObject?, object>? OnItemDroppedOnItem { get; set; }
 
         /// <summary>是否允许"放进某一项"。关闭时一律按插入/添加处理。</summary>
         public bool AllowDropOnItem { get; set; } = false;
+
+        /// <summary>项被点击时触发(点在项内控件并标记 Handled 的不会触发)。</summary>
+        public event EventHandler<JuiItemClickEventArgs>? ItemClick;
 
         // ===== 附加属性: 标记当前高亮的放入目标项, 供样式 Trigger 使用 =====
         public static readonly DependencyProperty IsDropTargetProperty =
@@ -93,10 +106,14 @@ namespace JUI.Controls
 
         public void RemoveItem(object item)
         {
-            if (ItemsSource is IList list && item != null && list.Contains(item))
+            if (ItemsSource is IList list && item != null)
             {
-                list.Remove(item);
-                OnContentChanged?.Invoke();
+                int i = list.IndexOf(item);
+                if (i >= 0)
+                {
+                    list.RemoveAt(i);
+                    OnContentChanged?.Invoke();
+                }
             }
         }
 
@@ -125,6 +142,26 @@ namespace JUI.Controls
                 : null;
         }
 
+        // ================= 点击 =================
+
+        private bool _dragHappened;   // 本次按下后是否已发起拖动
+
+        private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // 刚刚拖过 → 不当作点击
+            if (_dragHappened) { _dragHappened = false; return; }
+
+            var item = GetItemFromElement(e.OriginalSource as DependencyObject);
+            if (item == null) return;   // 点在空白处
+
+            ItemClick?.Invoke(this, new JuiItemClickEventArgs
+            {
+                Item = item,
+                Button = MouseButton.Left,
+                ClickCount = e.ClickCount
+            });
+        }
+
         // ================= 发起拖动 =================
 
         private Point _dragStart;
@@ -134,6 +171,7 @@ namespace JUI.Controls
         {
             _dragStart = e.GetPosition(null);
             _dragItem = GetItemFromElement(e.OriginalSource as DependencyObject);
+            _dragHappened = false;
         }
 
         private void OnPreviewMouseMove(object sender, MouseEventArgs e)
@@ -146,6 +184,8 @@ namespace JUI.Controls
             if (Math.Abs(diff.X) < SystemParameters.MinimumHorizontalDragDistance &&
                 Math.Abs(diff.Y) < SystemParameters.MinimumVerticalDragDistance)
                 return;
+
+            _dragHappened = true;
 
             var data = new DataObject();
             data.SetData(JuiItemFormat, _dragItem);
@@ -165,11 +205,10 @@ namespace JUI.Controls
 
         private ListBoxItem? _highlighted;
 
-
         private void OnDragOver(object sender, DragEventArgs e)
         {
             bool isInternal = e.Data.GetDataPresent(JuiItemFormat);
-            bool isExternal = e.Data.GetDataPresent(DataFormats.FileDrop) && FileToItemConverter != null;
+            bool isExternal = !isInternal && ExternalDropHandler != null;
 
             if (!isInternal && !isExternal)
             {
@@ -186,45 +225,23 @@ namespace JUI.Controls
                 Highlight(targetContainer);
                 _insertionAdorner?.Hide();
                 _lastInsertIndex = -2;
-                e.Effects = isInternal ? DragDropEffects.Move : DragDropEffects.Copy;
             }
             else
             {
                 // 落在间隙/空白 → 插入: 取消高亮, 显示插入线
                 ClearDropTargetHighlight();
                 ShowInsertionAt(GetInsertIndex(e));
-                e.Effects = isInternal ? DragDropEffects.Move : DragDropEffects.Copy;
             }
 
+            e.Effects = isInternal ? DragDropEffects.Move : DragDropEffects.Copy;
             e.Handled = true;
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         private void OnDragLeave(object sender, DragEventArgs e)
         {
             ClearDropTargetHighlight();
             RemoveAdorner();
         }
-
-
-
-
-
-
-
-
 
         private void Highlight(ListBoxItem container)
         {
@@ -252,10 +269,10 @@ namespace JUI.Controls
             if (ItemsSource is not IList list) return;
 
             bool isInternal = e.Data.GetDataPresent(JuiItemFormat);
-            bool isExternal = e.Data.GetDataPresent(DataFormats.FileDrop) && FileToItemConverter != null;
+            bool isExternal = !isInternal && ExternalDropHandler != null;
             if (!isInternal && !isExternal) return;
 
-            // 先判断: 是否落在某一项主体上(且开启移入)
+            // 是否落在某一项主体上(且开启移入)
             var targetContainer = AllowDropOnItem ? GetContainerUnderMouse(e) : null;
             object? targetItem = targetContainer != null
                 ? ItemContainerGenerator.ItemFromContainer(targetContainer)
@@ -270,14 +287,9 @@ namespace JUI.Controls
                     if (dragged != null && !ReferenceEquals(dragged, targetItem))
                         OnItemDroppedOnItem?.Invoke(dragged, null, targetItem);
                 }
-                else // 外部文件
+                else // 外部: 原始数据交给用户
                 {
-                    var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                    foreach (var f in files)
-                    {
-                        var converted = FileToItemConverter!(f);
-                        OnItemDroppedOnItem?.Invoke(converted, f, targetItem);
-                    }
+                    OnItemDroppedOnItem?.Invoke(null, e.Data, targetItem);
                 }
                 e.Handled = true;
                 return;
@@ -294,24 +306,23 @@ namespace JUI.Controls
                 if (oldIndex < 0) return;
                 MoveItem(oldIndex, insertIndex);
             }
-            else // 外部文件: 插入到对应位置
+            else // 外部: 控件不解析, 交给用户返回数据项, 控件负责插入
             {
-                var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                bool added = false;
-                int idx = insertIndex;
-                foreach (var f in files)
+                var items = ExternalDropHandler!(e.Data);
+                if (items != null)
                 {
-                    var item = FileToItemConverter!(f);
-                    if (item != null)
+                    bool added = false;
+                    int idx = insertIndex;
+                    foreach (var item in items)
                     {
-                        if (idx < 0) idx = list.Count;
-                        if (idx > list.Count) idx = list.Count;
+                        if (item == null) continue;
+                        if (idx < 0 || idx > list.Count) idx = list.Count;
                         list.Insert(idx, item);
                         idx++;
                         added = true;
                     }
+                    if (added) OnContentChanged?.Invoke();
                 }
-                if (added) OnContentChanged?.Invoke();
             }
 
             e.Handled = true;
@@ -319,7 +330,7 @@ namespace JUI.Controls
 
         // ================= 落点判定 =================
 
-        /// <summary>鼠标当前是否悬停在某一项的主体上, 是则返回该容器, 否则 null(落在间隙/空白)。</summary>
+        /// <summary>鼠标当前是否悬停在某一项主体上, 是则返回容器, 否则 null(落在间隙/空白)。</summary>
         private ListBoxItem? GetContainerUnderMouse(DragEventArgs e)
         {
             var pos = e.GetPosition(this);
@@ -330,9 +341,8 @@ namespace JUI.Controls
         }
 
         /// <summary>
-        /// 算出插入索引(0..Count)。
-        /// 优先精确命中项的左右半边; 没命中则找最近的项, 按几何方位决定插在其前或后;
-        /// 只有鼠标在所有项之后时才真正落到末尾。
+        /// 算出插入索引(0..Count)。优先精确命中项的左右半边;
+        /// 没命中则找几何上最近的项, 按方位决定插在其前或后。
         /// </summary>
         private int GetInsertIndex(DragEventArgs e)
         {
@@ -340,7 +350,7 @@ namespace JUI.Controls
 
             var pos = e.GetPosition(this);
 
-            // 1) 先尝试精确命中某一项
+            // 1) 精确命中某一项
             var container = GetContainerUnderMouse(e);
             if (container != null)
             {
@@ -354,7 +364,7 @@ namespace JUI.Controls
                 }
             }
 
-            // 2) 没命中: 遍历所有已生成的容器, 找几何上"最近"的项, 决定插在它前或后
+            // 2) 没命中: 找最近项, 按几何方位决定前/后
             int bestIndex = -1;
             double bestDist = double.MaxValue;
             bool insertAfterBest = false;
@@ -364,12 +374,10 @@ namespace JUI.Controls
                 if (ItemContainerGenerator.ContainerFromIndex(i) is not ListBoxItem c) continue;
                 if (!c.IsVisible) continue;
 
-                // 该项相对于本控件的矩形
                 var topLeft = c.TranslatePoint(new Point(0, 0), this);
                 var rect = new Rect(topLeft, new Size(c.ActualWidth, c.ActualHeight));
                 var center = new Point(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
 
-                // 用鼠标到项中心的距离找最近项
                 double dx = pos.X - center.X;
                 double dy = pos.Y - center.Y;
                 double dist = dx * dx + dy * dy;
@@ -379,27 +387,17 @@ namespace JUI.Controls
                     bestDist = dist;
                     bestIndex = i;
 
-                    // 优先按"同一行内的左右"判断; 若鼠标明显在该项下方一行, 则算其后
-                    if (pos.Y > rect.Bottom)
-                        insertAfterBest = true;                    // 在该项下方 → 之后
-                    else if (pos.Y < rect.Top)
-                        insertAfterBest = false;                   // 在该项上方 → 之前
-                    else
-                        insertAfterBest = pos.X > center.X;        // 同行 → 看左右半边
+                    if (pos.Y > rect.Bottom) insertAfterBest = true;        // 下方 → 之后
+                    else if (pos.Y < rect.Top) insertAfterBest = false;     // 上方 → 之前
+                    else insertAfterBest = pos.X > center.X;                 // 同行 → 看左右半边
                 }
             }
 
-            if (bestIndex < 0) return list.Count;   // 一个容器都没生成(极端情况)
-
+            if (bestIndex < 0) return list.Count;
             return insertAfterBest ? bestIndex + 1 : bestIndex;
         }
 
-
-
-
-
-
-
+        // ================= 插入指示线 =================
 
         private void EnsureAdorner()
         {
@@ -425,7 +423,6 @@ namespace JUI.Controls
             _lastInsertIndex = -2;
         }
 
-        /// <summary>根据插入索引, 把指示线画到对应的项边缘。</summary>
         /// <summary>根据插入索引, 把指示线画到两项之间的间隙正中。</summary>
         private void ShowInsertionAt(int insertIndex)
         {
@@ -443,12 +440,10 @@ namespace JUI.Controls
 
             double x, top, bottom;
 
-            // 当前项(insertIndex 指向的项, 线画在它左侧)
             ListBoxItem? cur = insertIndex < list.Count
                 ? ItemContainerGenerator.ContainerFromIndex(insertIndex) as ListBoxItem
                 : null;
 
-            // 前一项(用来取间隙左界)
             ListBoxItem? prev = insertIndex - 1 >= 0 && insertIndex - 1 < list.Count
                 ? ItemContainerGenerator.ContainerFromIndex(insertIndex - 1) as ListBoxItem
                 : null;
@@ -460,19 +455,16 @@ namespace JUI.Controls
                 top = curTL.Y;
                 bottom = curTL.Y + cur.ActualHeight;
 
-                // 如果前一项和当前项在同一行, 线取两者之间间隙的中点
                 if (prev != null)
                 {
                     var prevTL = prev.TranslatePoint(new Point(0, 0), this);
                     double prevRight = prevTL.X + prev.ActualWidth;
-                    bool sameRow = System.Math.Abs(prevTL.Y - curTL.Y) < 1;
-
+                    bool sameRow = Math.Abs(prevTL.Y - curTL.Y) < 1;
                     x = sameRow ? (prevRight + curLeft) / 2 : curLeft - 2;
                 }
                 else
                 {
-                    // 没有前一项(插到最前面): 画在当前项左边缘稍外侧
-                    x = curLeft - 2;
+                    x = curLeft - 2;   // 插到最前面
                 }
 
                 _insertionAdorner.Update(x, top, bottom);
@@ -488,13 +480,9 @@ namespace JUI.Controls
                 bottom = lastTL.Y + last.ActualHeight;
                 _insertionAdorner.Update(x, top, bottom);
             }
-
-
-
-
-
         }
 
+        // ================= 依赖属性 =================
 
         /// <summary>列表为空时显示的内容(由用户提供, 任意 UI)。</summary>
         public object? EmptyContent
@@ -506,9 +494,15 @@ namespace JUI.Controls
             DependencyProperty.Register(nameof(EmptyContent), typeof(object),
                 typeof(JuiGrid), new PropertyMetadata(null));
 
-
-
-
+        /// <summary>项的间隔(单边)。实际项与项之间的间隙为此值的 2 倍。默认 0。</summary>
+        public double ItemSpacing
+        {
+            get => (double)GetValue(ItemSpacingProperty);
+            set => SetValue(ItemSpacingProperty, value);
+        }
+        public static readonly DependencyProperty ItemSpacingProperty =
+            DependencyProperty.Register(nameof(ItemSpacing), typeof(double),
+                typeof(JuiGrid), new PropertyMetadata(0.0, (d, e) => ((JuiGrid)d).UpdateAutoHeight()));
 
         /// <summary>最多显示几行, 超过则滚动。默认 3。</summary>
         public int MaxRows
@@ -520,7 +514,7 @@ namespace JUI.Controls
             DependencyProperty.Register(nameof(MaxRows), typeof(int),
                 typeof(JuiGrid), new PropertyMetadata(3, (d, e) => ((JuiGrid)d).UpdateAutoHeight()));
 
-        /// <summary>每项的高度(含间距), 用于计算行高。需与 ItemTemplate 实际高度一致。</summary>
+        /// <summary>每项容器的完整高度(不含间隔)。间隔由 ItemSpacing 控制。</summary>
         public double ItemHeight
         {
             get => (double)GetValue(ItemHeightProperty);
@@ -530,7 +524,7 @@ namespace JUI.Controls
             DependencyProperty.Register(nameof(ItemHeight), typeof(double),
                 typeof(JuiGrid), new PropertyMetadata(148.0, (d, e) => ((JuiGrid)d).UpdateAutoHeight()));
 
-        /// <summary>每项的宽度(含间距), 用于计算列数。</summary>
+        /// <summary>每项容器的完整宽度(不含间隔)。间隔由 ItemSpacing 控制。</summary>
         public double ItemWidth
         {
             get => (double)GetValue(ItemWidthProperty);
@@ -540,13 +534,14 @@ namespace JUI.Controls
             DependencyProperty.Register(nameof(ItemWidth), typeof(double),
                 typeof(JuiGrid), new PropertyMetadata(128.0, (d, e) => ((JuiGrid)d).UpdateAutoHeight()));
 
+        // ================= 自动高度 =================
 
-
-
-        protected override void OnItemsChanged(System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        protected override void OnItemsChanged(NotifyCollectionChangedEventArgs e)
         {
             base.OnItemsChanged(e);
             UpdateAutoHeight();
+            // 布局完成后用真实行数再修正一次
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(UpdateAutoHeight));
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -557,32 +552,66 @@ namespace JUI.Controls
 
         private void UpdateAutoHeight()
         {
-            if (ItemWidth <= 0 || ItemHeight <= 0) return;
-            if (ItemsSource is not IList list) { return; }
+            if (ItemHeight <= 0) return;
+            if (ItemsSource is not IList list) return;
+
+            double cellHeight = ItemHeight + ItemSpacing * 2;
 
             int count = list.Count;
             if (count == 0)
             {
-                // 空列表给一个最小高度, 让 EmptyContent 有地方显示
-                MaxHeight = ItemHeight;
+                MaxHeight = cellHeight + Padding.Top + Padding.Bottom;
                 return;
             }
 
-            // 根据当前可用宽度算每行能放几列
-            double available = ActualWidth > 0 ? ActualWidth : Width;
-            int cols = available > 0 ? System.Math.Max(1, (int)(available / ItemWidth)) : 1;
+            int rows = CountRealRows();              // 优先真实行数
+            if (rows <= 0) rows = EstimateRows(count); // 容器未生成时回退估算
 
-            // 当前实际需要几行
-            int rows = (int)System.Math.Ceiling(count / (double)cols);
-
-            // 取 "实际行数" 和 "最大行数" 的较小值
-            int shownRows = System.Math.Min(rows, System.Math.Max(1, MaxRows));
-
-            // 设置高度上限 = 行数 × 行高 (留一点边距)
-            MaxHeight = shownRows * ItemHeight + Padding.Top + Padding.Bottom + 4;
+            int shownRows = Math.Min(rows, Math.Max(1, MaxRows));
+            MaxHeight = shownRows * cellHeight + Padding.Top + Padding.Bottom;
         }
 
+        /// <summary>遍历已生成容器, 用不同的 Y 坐标统计真实行数。</summary>
+        private int CountRealRows()
+        {
+            if (ItemsSource is not IList list) return 0;
 
+            var ys = new List<double>();
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (ItemContainerGenerator.ContainerFromIndex(i) is not ListBoxItem c) continue;
+                if (!c.IsVisible) continue;
 
+                double y = c.TranslatePoint(new Point(0, 0), this).Y;
+                if (!ys.Exists(v => Math.Abs(v - y) < 1.0)) ys.Add(y);
+            }
+            return ys.Count;
+        }
+
+        /// <summary>容器尚未生成时, 按宽度估算行数(含间隔)。</summary>
+        private int EstimateRows(int count)
+        {
+            double cellWidth = ItemWidth + ItemSpacing * 2;
+            if (cellWidth <= 0) return 1;
+
+            double available = (ActualWidth > 0 ? ActualWidth : Width)
+                               - Padding.Left - Padding.Right
+                               - BorderThickness.Left - BorderThickness.Right;
+            if (available <= 0) return 1;
+
+            int cols = Math.Max(1, (int)(available / cellWidth));
+            return (int)Math.Ceiling(count / (double)cols);
+        }
+    }
+
+    /// <summary>JuiGrid 项点击事件参数。</summary>
+    public class JuiItemClickEventArgs : EventArgs
+    {
+        /// <summary>被点击的数据项。</summary>
+        public required object Item { get; init; }
+        /// <summary>触发的鼠标键。</summary>
+        public MouseButton Button { get; init; }
+        /// <summary>点击次数(1 = 单击, 2 = 双击)。</summary>
+        public int ClickCount { get; init; }
     }
 }
