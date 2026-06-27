@@ -55,7 +55,7 @@ namespace JQuick
                     var bmp = new BitmapImage();
                     bmp.BeginInit();
                     bmp.UriSource = new Uri(path);
-                    bmp.DecodePixelWidth = 240;          // 降低解码成本
+                    bmp.DecodePixelWidth = 80;          // 降低解码成本
                     bmp.CacheOption = BitmapCacheOption.OnLoad;
                     bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
                     bmp.EndInit();

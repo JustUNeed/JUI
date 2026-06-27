@@ -19,4 +19,8 @@
     <!-- 边框 / 分隔 -->
     <SolidColorBrush x:Key="Jui.Border"          Color="#D0D0D0"/>
 
+    <!-- 关闭按钮专用红色 -->
+    <SolidColorBrush x:Key="Jui.Close.Hover"     Color="#E81123"/>
+    <SolidColorBrush x:Key="Jui.Close.Pressed"   Color="#C50F1F"/>
+
 </ResourceDictionary>

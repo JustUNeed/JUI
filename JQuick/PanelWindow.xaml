@@ -1,18 +1,32 @@
-﻿<Window x:Class="JQuick.MainWindow"
+﻿<jui:JuiWindow x:Class="JQuick.PanelWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:JQuick"
         xmlns:jui="clr-namespace:JUI.Controls;assembly=JUI"
-        mc:Ignorable="d"
-        Title="图片剪贴板" Height="500" Width="400"
-       >
-    <Window.Resources>
+        Title="图片剪贴板"
+        Width="400" Height="500"
+        TitleBarMode="NoTitleBar"
+        ShowInTaskbar="False"
+        AllowDrop="True">
+    <jui:JuiWindow.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-    </Window.Resources>
-    
-    <DockPanel Margin="8">
+    </jui:JuiWindow.Resources>
+
+    <DockPanel x:Name="PanelRoot" Margin="8">
+        <StackPanel DockPanel.Dock="Top"
+            Orientation="Horizontal"
+            HorizontalAlignment="Right"
+            Margin="0,0,0,6">
+            <ToggleButton x:Name="PinToggle"
+                  Content="常驻模式"
+                  Margin="0,0,6,0"
+                  Checked="PinToggle_Changed"
+                  Unchecked="PinToggle_Changed"/>
+            <Button x:Name="SettingsButton"
+            Content="设置"
+            Padding="8,2"
+            Click="SettingsButton_Click"/>
+        </StackPanel>
         <!-- 图片剪贴板 -->
         <local:ImageClipboardControl x:Name="ClipboardGrid"
                                      DockPanel.Dock="Top"
@@ -56,46 +70,50 @@
                                     DockPanel.Dock="Top"
                                   ItemWidth="80" ItemHeight="90"
                                   ItemSpacing="2" ItemCornerRadius="4">
-           <local:AppLauncherControl.ItemTemplate>
-    <DataTemplate>
-        <Grid x:Name="ItemRoot" Background="Transparent">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>      <!-- 图标区: 占满上方并居中 -->
-                <RowDefinition Height="Auto"/>   <!-- 文本: 靠下 -->
-            </Grid.RowDefinitions>
+            <local:AppLauncherControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid x:Name="ItemRoot" Background="Transparent">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <!-- 图标区: 占满上方并居中 -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- 文本: 靠下 -->
+                        </Grid.RowDefinitions>
 
-            <!-- 图标: 在上方区域水平垂直居中 -->
-            <Grid Grid.Row="0" Width="48" Height="48"
+                        <!-- 图标: 在上方区域水平垂直居中 -->
+                        <Grid Grid.Row="0" Width="48" Height="48"
                   HorizontalAlignment="Center" VerticalAlignment="Center">
-                <Border Background="#1A000000" CornerRadius="4"/>   <!-- 占位 -->
-                <Image Source="{Binding Icon}"/>                     <!-- 加载完才显示 -->
-            </Grid>
+                            <Border Background="#1A000000" CornerRadius="4"/>
+                            <!-- 占位 -->
+                            <Image Source="{Binding Icon}"/>
+                            <!-- 加载完才显示 -->
+                        </Grid>
 
-            <!-- 名称: 一行, 靠下居中, 超出省略号 -->
-            <TextBlock Grid.Row="1" Text="{Binding DisplayName}"
+                        <!-- 名称: 一行, 靠下居中, 超出省略号 -->
+                        <TextBlock Grid.Row="1" Text="{Binding DisplayName}"
                        TextAlignment="Center"
                        TextTrimming="CharacterEllipsis"
                        Margin="2,2,2,4"
                        Foreground="{DynamicResource Jui.Text.Primary}"/>
 
-            <!-- 删除按钮: 右上角, 悬停显示 -->
-            <Button x:Name="PART_DeleteButton" Grid.Row="0" Content="✕"
+                        <!-- 删除按钮: 右上角, 悬停显示 -->
+                        <Button x:Name="PART_DeleteButton" Grid.Row="0" Content="✕"
                     Width="18" Height="18"
                     HorizontalAlignment="Right" VerticalAlignment="Top" Margin="2">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Visibility" Value="Hidden"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
-                                <Setter Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
-        </Grid>
-    </DataTemplate>
-</local:AppLauncherControl.ItemTemplate>
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Visibility" Value="Hidden"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
+                </DataTemplate>
+            </local:AppLauncherControl.ItemTemplate>
 
         </local:AppLauncherControl>
 
@@ -107,11 +125,11 @@
                 <DataTemplate>
                     <Grid x:Name="ItemRoot" Background="Transparent">
                         <Border Background="Black">
-                    
+
                             <TextBlock Text="{Binding DisplayName}" TextAlignment="Center" Margin="8" VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource Jui.Text.Primary}"/>
-                         
+
                         </Border>
 
                         <Button Content="✕" Width="18" Height="18"
@@ -171,4 +189,4 @@
         </local:TextClipboardControl>
 
     </DockPanel>
-</Window>
+</jui:JuiWindow>

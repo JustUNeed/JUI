@@ -1,0 +1,24 @@
+﻿<jui:JuiWindow x:Class="JQuick.FloatingBallWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:jui="clr-namespace:JUI.Controls;assembly=JUI"
+        Title="JFloat"
+        Width="32" Height="32"
+        TitleBarMode="Borderless"
+        ShowInTaskbar="False"
+        Topmost="True"
+        AllowDrop="True">
+    <Border x:Name="Ball"
+        CornerRadius="6"
+        Background="{DynamicResource Jui.Accent}"
+        MouseLeftButtonDown="Ball_MouseLeftButtonDown"
+        MouseMove="Ball_MouseMove"
+        MouseLeftButtonUp="Ball_MouseLeftButtonUp"
+        MouseEnter="Ball_MouseEnter"
+        DragEnter="Ball_DragEnter"
+        DragOver="Ball_DragEnter">
+        <TextBlock Text="J" Foreground="White" FontWeight="Bold"
+               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    </Border>
+
+</jui:JuiWindow>

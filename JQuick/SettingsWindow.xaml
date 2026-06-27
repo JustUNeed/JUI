@@ -1,0 +1,30 @@
+﻿<jui:JuiWindow x:Class="JQuick.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:jui="clr-namespace:JUI.Controls;assembly=JUI"
+        Title="设置"
+        Width="320" Height="200"
+        TitleBarMode="Normal"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="16" VerticalAlignment="Top">
+        <TextBlock Text="基础设置"
+                   FontSize="14" FontWeight="Bold"
+                   Foreground="{DynamicResource Jui.Text.Primary}"
+                   Margin="0,0,0,12"/>
+
+        <!-- 开机自启动 -->
+        <CheckBox x:Name="StartupCheck"
+                  Content="开机自启动"
+                  Foreground="{DynamicResource Jui.Text.Primary}"
+                  Margin="0,0,0,12"
+                  Checked="StartupCheck_Changed"
+                  Unchecked="StartupCheck_Changed"/>
+
+        <!-- 打开配置文件夹 -->
+        <Button Content="打开配置文件夹"
+                HorizontalAlignment="Left"
+                Padding="12,4"
+                Click="OpenConfigFolder_Click"/>
+    </StackPanel>
+</jui:JuiWindow>
