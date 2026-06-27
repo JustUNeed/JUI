@@ -14,6 +14,7 @@ namespace JQuick
     /// 文本剪贴板列表(基于 JuiList)。
     /// 外部拖入文本 → 加项; 项可拖出到外部文本框(微信/浏览器); 左键点击 → 复制到系统剪贴板;
     /// 叉叉删除。内容与顺序整体持久化到 texts.json。
+    /// 拖出格式通过 JuiList.DragDataProvider 填充, JUI 框架不感知"文本"这一业务格式。
     /// </summary>
     public class TextClipboardControl : JuiList
     {
@@ -22,6 +23,7 @@ namespace JQuick
             DefaultStyleKeyProperty.OverrideMetadata(typeof(TextClipboardControl),
                 new FrameworkPropertyMetadata(typeof(JuiList)));
 
+            // 捕获模板里所有名为 "PART_DeleteButton" 的按钮点击
             EventManager.RegisterClassHandler(
                 typeof(TextClipboardControl),
                 ButtonBase.ClickEvent,
@@ -62,10 +64,25 @@ namespace JQuick
             if (_inited) return;
             _inited = true;
 
-            ExternalDropHandler = HandleExternalDrop;                 // 拖入文本 → 加项
-            DragTextSelector = item => (item as ClipTextItem)?.Text;  // 拖出 → 给文本框
-            ContentChanged = () => _store?.Save(_items.Select(i => i.Text));  // 排序/增删 → 保存
-            LeftClick = item => CopyToClipboard((ClipTextItem)item);  // 左键 → 复制
+            // 拖入文本 → 加项
+            ExternalDropHandler = HandleExternalDrop;
+
+            // 拖出 → 由本控件决定往 DataObject 放什么(文本格式)
+            DragDataProvider = (item, data) =>
+            {
+                var text = (item as ClipTextItem)?.Text;
+                if (!string.IsNullOrEmpty(text))
+                {
+                    data.SetData(DataFormats.Text, text);
+                    data.SetData(DataFormats.UnicodeText, text);
+                }
+            };
+
+            // 排序/增删 → 整体保存(内容 + 顺序)
+            ContentChanged = () => _store?.Save(_items.Select(i => i.Text));
+
+            // 左键 → 复制到系统剪贴板
+            LeftClick = item => CopyToClipboard((ClipTextItem)item);
 
             ItemsSource = _items;
 

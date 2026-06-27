@@ -14,7 +14,8 @@ namespace JUI.Controls
     /// <summary>
     /// JUI 通用列表控件: 单列纵向布局 + 虚拟化 + 拖动排序 + 拖入/拖出 + 移入项。
     /// 与 JuiGrid 行为一致, 区别仅在于布局为纵向单列列表(项铺满整行), 落点按上/下半边判定,
-    /// 插入指示线为横线。外部拖入数据格式不由控件判断, 统一交给 ExternalDropHandler 解析。
+    /// 插入指示线为横线。外部拖入数据格式不由控件判断, 统一交给 ExternalDropHandler 解析;
+    /// 拖出格式也不由控件假设, 通过 DragDataProvider 交给使用方填充。
     /// 单选; 左右键点击通过 LeftClick / RightClick 暴露(项内控件标记 Handled 即可不触发)。
     /// </summary>
     public class JuiList : ListBox
@@ -51,17 +52,46 @@ namespace JUI.Controls
 
         private void OnLoaded(object sender, RoutedEventArgs e) => RecomputeHeight();
 
-        // ================= 对外契约(与 JuiGrid 一致) =================
+        // ================= 对外契约 =================
 
+        /// <summary>如何从数据项取出文件路径(用于拖出文件到外部)。</summary>
         public Func<object, string?>? FilePathSelector { get; set; }
+
+        /// <summary>
+        /// 发起拖动时调用, 让使用方往拖出的 DataObject 里填充任意对外格式
+        /// (文本 / 自定义格式等)。控件已写入内部拖动标识, 此处只追加对外格式。
+        /// 参数: 被拖的数据项, 待填充的 DataObject。
+        /// </summary>
+        public Action<object, IDataObject>? DragDataProvider { get; set; }
+
+        /// <summary>
+        /// 外部数据拖入时调用。控件不判断格式, 把原始数据交给使用方解析, 返回要插入的数据项;
+        /// 返回 null 或空表示不接受。控件负责按落点插入。
+        /// </summary>
         public Func<IDataObject, IEnumerable<object>?>? ExternalDropHandler { get; set; }
+
+        /// <summary>列表自身增删改(插入/排序/添加)时调用, 供持久化。</summary>
         public Action? ContentChanged { get; set; }
+
+        /// <summary>
+        /// 把东西"放进某一项"时调用(不改变当前列表)。参数依次为:
+        /// 被拖数据(内部=项数据, 外部=null)、原始拖放数据(外部有值, 内部=null)、目标项。
+        /// </summary>
         public Action<object?, IDataObject?, object>? ItemDropped { get; set; }
+
+        /// <summary>是否允许"放进某一项"。关闭时一律按插入/添加处理。</summary>
         public bool AllowDropOnItem { get; set; }
+
+        /// <summary>项被左键点击时调用(项内控件标记 Handled 的不触发)。参数: 数据项。</summary>
         public Action<object>? LeftClick { get; set; }
+
+        /// <summary>项被右键点击时调用(项内控件标记 Handled 的不触发)。参数: 数据项。</summary>
         public Action<object>? RightClick { get; set; }
+
+        /// <summary>容器进入视口(被实现)时调用, 供懒加载等。参数: 数据项。</summary>
         public Action<object>? ItemPreparing { get; set; }
 
+        // ===== 附加属性: 标记当前高亮的放入目标项 =====
         public static readonly DependencyProperty IsDropTargetProperty =
             DependencyProperty.RegisterAttached(
                 "IsDropTarget", typeof(bool), typeof(JuiList), new PropertyMetadata(false));
@@ -69,10 +99,12 @@ namespace JUI.Controls
         public static void SetIsDropTarget(DependencyObject o, bool v) => o.SetValue(IsDropTargetProperty, v);
         public static bool GetIsDropTarget(DependencyObject o) => (bool)o.GetValue(IsDropTargetProperty);
 
-        // ================= 批量更新(与 JuiGrid 一致) =================
+        // ================= 批量更新 =================
 
+        /// <summary>开始批量更新: 挂起内部高度重算, 避免逐项灌入时的布局风暴。支持嵌套。</summary>
         public void BeginBulkUpdate() => _bulkDepth++;
 
+        /// <summary>结束批量更新: 计数归零时补算一次高度。</summary>
         public void EndBulkUpdate()
         {
             if (_bulkDepth == 0) return;
@@ -83,6 +115,7 @@ namespace JUI.Controls
             }
         }
 
+        /// <summary>using 友好的批量更新作用域。</summary>
         public IDisposable BulkUpdate()
         {
             BeginBulkUpdate();
@@ -101,7 +134,7 @@ namespace JUI.Controls
         private IList? WritableList =>
             ItemsSource is IList { IsReadOnly: false, IsFixedSize: false } list ? list : null;
 
-        // ================= 公开方法(与 JuiGrid 一致) =================
+        // ================= 公开方法 =================
 
         public void AddItem(object item)
         {
@@ -154,7 +187,7 @@ namespace JUI.Controls
                 : null;
         }
 
-        // ================= 点击(与 JuiGrid 一致) =================
+        // ================= 点击(左/右键分开, 无双击) =================
 
         private bool _dragHappened;
 
@@ -171,7 +204,7 @@ namespace JUI.Controls
             if (item != null) RightClick?.Invoke(item);
         }
 
-        // ================= 发起拖动(与 JuiGrid 一致) =================
+        // ================= 发起拖动 =================
 
         private Point _dragStart;
         private object? _dragItem;
@@ -195,11 +228,15 @@ namespace JUI.Controls
             _dragHappened = true;
 
             var data = new DataObject();
-            data.SetData(JuiItemFormat, _dragItem);
+            data.SetData(JuiItemFormat, _dragItem);   // 框架内部排序/移入用, 必留
 
+            // 兼容: 若提供了文件路径选择器且项对应真实文件, 写入 FileDrop
             var path = FilePathSelector?.Invoke(_dragItem);
             if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path))
                 data.SetData(DataFormats.FileDrop, new[] { path });
+
+            // 其余对外格式完全由使用方决定(文本/自定义等)
+            DragDataProvider?.Invoke(_dragItem, data);
 
             DragDrop.DoDragDrop(this, data, DragDropEffects.Move | DragDropEffects.Copy);
 
@@ -262,7 +299,7 @@ namespace JUI.Controls
             _highlighted = null;
         }
 
-        // ================= 放下(与 JuiGrid 一致) =================
+        // ================= 放下 =================
 
         private void OnDrop(object sender, DragEventArgs e)
         {
@@ -276,12 +313,13 @@ namespace JUI.Controls
             bool isExternal = !isInternal && ExternalDropHandler != null;
             if (!isInternal && !isExternal) return;
 
+            // 落在某一项主体上(且开启移入)
             var targetContainer = AllowDropOnItem ? GetContainerUnderMouse(e) : null;
             object? targetItem = targetContainer != null
                 ? ItemContainerGenerator.ItemFromContainer(targetContainer)
                 : null;
 
-            // ---- 情况A: 移入某一项 ----
+            // ---- 情况A: 移入某一项(不改变列表) ----
             if (targetItem != null)
             {
                 if (isInternal)
@@ -298,7 +336,7 @@ namespace JUI.Controls
                 return;
             }
 
-            // ---- 情况B: 插入间隙 / 末尾 ----
+            // ---- 情况B: 插入间隙 / 末尾(改变列表) ----
             int insertIndex = GetInsertIndex(e);
 
             if (isInternal)
@@ -491,7 +529,7 @@ namespace JUI.Controls
             DependencyProperty.Register(nameof(ItemHeight), typeof(double),
                 typeof(JuiList), new PropertyMetadata(40.0, OnLayoutAffectingChanged));
 
-        /// <summary>最多同时可见的行数(决定控件自治高度); ≤0 表示不限制(交给外部布局)。</summary>
+        /// <summary>最多同时可见的行数(决定控件自治高度); ≤0 表示不接管高度, 交给外部布局。</summary>
         public int MaxVisibleItems
         {
             get => (int)GetValue(MaxVisibleItemsProperty);
@@ -513,12 +551,6 @@ namespace JUI.Controls
         private static void OnLayoutAffectingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
             => ((JuiList)d).RecomputeHeight();
 
-
-
-        /// <summary>拖出到外部时, 如何从数据项取出纯文本(用于拖到文本框)。返回非空则写入 DataFormats.Text。</summary>
-        public Func<object, string?>? DragTextSelector { get; set; }
-
-
         // ================= 高度自治 =================
 
         protected override void OnItemsChanged(NotifyCollectionChangedEventArgs e)
@@ -533,7 +565,7 @@ namespace JUI.Controls
             if (element is FrameworkElement fe)
             {
                 fe.Height = ItemHeight;
-                // 宽度不固定: 由面板拉伸铺满整行(见样式 HorizontalContentAlignment=Stretch)
+                // 宽度不固定: 由面板/样式拉伸铺满整行(HorizontalContentAlignment=Stretch)
             }
             ItemPreparing?.Invoke(item);
         }
