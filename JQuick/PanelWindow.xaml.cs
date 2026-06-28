@@ -1,6 +1,7 @@
 ﻿using JUI.Controls;
 using System;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace JQuick
@@ -22,6 +23,20 @@ namespace JQuick
 
         // 常驻模式
         public bool Pinned { get; private set; }
+
+
+
+
+
+        private bool _barDragging;
+        private Point _barDragStartCursor;
+        private double _barDragStartLeft, _barDragStartTop;
+
+        public AppController? Controller { get; set; }
+
+
+
+
 
         public PanelWindow()
         {
@@ -67,6 +82,10 @@ namespace JQuick
             };
 
             Loaded += OnLoadedInit;
+
+
+            // Ctrl+V 粘贴
+            PreviewKeyDown += OnPreviewKeyDown;
         }
 
         private void OnLoadedInit(object sender, RoutedEventArgs e)
@@ -97,8 +116,176 @@ namespace JQuick
         }
 
 
+        private void DragBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 只有常驻模式才允许用这一行拖动面板
+            if (!Pinned) return;
+            if (e.ButtonState != MouseButtonState.Pressed) return;
+
+            _barDragging = true;
+            _barDragStartCursor = GetCursorScreenPosition();
+            _barDragStartLeft = Left;
+            _barDragStartTop = Top;
+            DragBar.CaptureMouse();
+            e.Handled = true;
+        }
+
+        private void DragBar_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_barDragging) return;
+            var cur = GetCursorScreenPosition();
+            Left = _barDragStartLeft + (cur.X - _barDragStartCursor.X);
+            Top = _barDragStartTop + (cur.Y - _barDragStartCursor.Y);
+        }
+
+        private void DragBar_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!_barDragging) return;
+            _barDragging = false;
+            DragBar.ReleaseMouseCapture();
+
+            // 常驻位置实时持久化(LocationChanged 也会记, 这里兜底保存落盘)
+            ConfigStore.Current.PinnedLeft = Left;
+            ConfigStore.Current.PinnedTop = Top;
+            ConfigStore.Save();
+        }
 
 
+        private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.V &&
+                (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                PasteFromClipboard();
+                e.Handled = true;
+
+            }
+        }
+
+
+        /// <summary>
+        /// Ctrl+V 粘贴: 把剪贴板内容包成 DataObject, 复用各控件的 ExternalDropHandler 解析,
+        /// 再用 JuiGrid/JuiList 公开的 AddItem 插入。不修改任何控件。
+        /// 优先级: 文件 -> 文件面板; 图片 -> 图片剪贴板; 文本 -> 文本列表。
+        /// </summary>
+        private void PasteFromClipboard()
+        {
+            try
+            {
+                // 1) 文件 / 文件夹
+                if (Clipboard.ContainsFileDropList())
+                {
+                    var files = Clipboard.GetFileDropList();
+
+                    var imagePaths = new System.Collections.Specialized.StringCollection();  // 图片文件
+                    var otherFiles = new System.Collections.Specialized.StringCollection();  // 非图片文件
+                    var folders = new System.Collections.Specialized.StringCollection();  // 文件夹
+
+                    foreach (string? p in files)
+                    {
+                        if (string.IsNullOrEmpty(p)) continue;
+
+                        if (System.IO.Directory.Exists(p))
+                            folders.Add(p);
+                        else if (IsImageFile(p))
+                            imagePaths.Add(p);          // 图片优先 -> 图片剪贴板
+                        else
+                            otherFiles.Add(p);          // 其余文件 -> 文件快捷面板
+                    }
+
+                    // 图片文件 -> 图片剪贴板
+                    if (imagePaths.Count > 0)
+                    {
+                        var data = new DataObject();
+                        data.SetFileDropList(imagePaths);
+                        FeedToControl(ClipboardGrid, data);
+                    }
+
+                    // 非图片文件 -> 文件快捷面板
+                    if (otherFiles.Count > 0)
+                    {
+                        var data = new DataObject();
+                        data.SetFileDropList(otherFiles);
+                        FeedToControl(Launcher, data);
+                    }
+
+                    // 文件夹 -> FolderBox
+                    if (folders.Count > 0)
+                    {
+                        var data = new DataObject();
+                        data.SetFileDropList(folders);
+                        FeedToControl(FolderBox, data);
+                    }
+
+                    // 只要剪贴板里有文件/文件夹, 就到此为止, 不再走位图/文本
+                    if (imagePaths.Count > 0 || otherFiles.Count > 0 || folders.Count > 0)
+                        return;
+                }
+
+                // 2) 位图图片(截图等无文件路径的)
+                if (Clipboard.ContainsImage())
+                {
+                    var img = Clipboard.GetImage();
+                    string? savedPath = SaveBitmapToTemp(img);
+                    if (savedPath != null)
+                    {
+                        var paths = new System.Collections.Specialized.StringCollection { savedPath };
+                        var data = new DataObject();
+                        data.SetFileDropList(paths);
+                        FeedToControl(ClipboardGrid, data);
+                    }
+                    return;
+                }
+
+                // 3) 文本兜底
+                if (Clipboard.ContainsText())
+                {
+                    string text = Clipboard.GetText();
+                    if (!string.IsNullOrEmpty(text))
+                    {
+                        var data = new DataObject();
+                        data.SetText(text);
+                        data.SetData(DataFormats.UnicodeText, text);
+                        FeedToControl(TextClip, data);
+                    }
+                }
+            }
+            catch { /* 剪贴板访问偶发异常忽略 */ }
+        }
+
+        /// <summary>是否为图片文件(按扩展名判断)。</summary>
+        private static bool IsImageFile(string path)
+        {
+            string ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+            return ext is ".png" or ".jpg" or ".jpeg" or ".bmp"
+                      or ".gif" or ".webp" or ".tif" or ".tiff" or ".ico";
+        }
+
+        /// <summary>把一个 DataObject 交给某 JuiGrid 控件的 ExternalDropHandler 解析并插入。</summary>
+        private static void FeedToControl(JuiGrid grid, IDataObject data)
+        {
+            var handler = grid.ExternalDropHandler;
+            if (handler == null) return;
+
+            var items = handler(data);
+            if (items == null) return;
+
+            foreach (var item in items)
+                if (item != null) grid.AddItem(item);
+        }
+
+        /// <summary>JuiList 版(文本控件继承 JuiList, 不是 JuiGrid)。</summary>
+        private static void FeedToControl(JuiList list, IDataObject data)
+        {
+            var handler = list.ExternalDropHandler;
+            if (handler == null) return;
+
+            var items = handler(data);
+            if (items == null) return;
+
+            foreach (var item in items)
+                if (item != null) list.AddItem(item);
+        }
 
         // 判断窗口矩形是否至少部分落在工作区内
         private bool IsOnScreen(double left, double top, double w, double h)
@@ -109,7 +296,24 @@ namespace JQuick
         }
 
 
+        private string? SaveBitmapToTemp(System.Windows.Media.Imaging.BitmapSource? bmp)
+        {
+            if (bmp == null) return null;
+            try
+            {
+                string dir = System.IO.Path.Combine(
+                    System.IO.Path.GetTempPath(), "JQuick_paste");
+                System.IO.Directory.CreateDirectory(dir);
+                string file = System.IO.Path.Combine(dir, $"paste_{DateTime.Now:yyyyMMdd_HHmmss_fff}.png");
 
+                var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
+                using var fs = new System.IO.FileStream(file, System.IO.FileMode.Create);
+                encoder.Save(fs);
+                return file;
+            }
+            catch { return null; }
+        }
 
 
         // ===================== 常驻开关 =====================
@@ -159,7 +363,7 @@ namespace JQuick
             Opacity = 1;
             Show();
             Activate();
-
+            Focus();
             ConfigStore.Save();
         }
 
@@ -176,6 +380,9 @@ namespace JQuick
 
             // 悬浮球重新画出来
             Ball?.ShowBall();
+
+
+        
         }
 
         // ===================== 弹出在悬浮球旁 =====================
@@ -195,6 +402,7 @@ namespace JQuick
             Opacity = 1;
             Show();
             Activate();
+            Focus();
             _shown = true;
 
             _leaveTimer.Start();
@@ -339,16 +547,30 @@ namespace JQuick
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            // 已打开则激活, 避免重复弹
-            if (_settingsWindow != null)
-            {
-                _settingsWindow.Activate();
-                return;
-            }
-
-            _settingsWindow = new SettingsWindow { Owner = this };
-            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
-            _settingsWindow.Show();
+            Controller?.OpenSettings();
         }
+
+
+
+
+        // 注入后调用一次, 订阅设置窗口开关事件
+        public void AttachController(AppController app)
+        {
+            Controller = app;
+            app.SettingsOpened += () => _leaveTimer.Stop();   // 设置打开, 面板别收起
+            app.SettingsClosed += () =>
+            {
+                if (!Pinned)
+                {
+                    _guardUntil = DateTime.Now.AddMilliseconds(GuardMs);
+                    _leaveTimer.Start();
+                }
+            };
+        }
+
+
+
+
+
     }
 }

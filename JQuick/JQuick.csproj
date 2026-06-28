@@ -9,9 +9,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="icon\tray.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\JUI\JUI.csproj" />
   </ItemGroup>
 	<ItemGroup>
+		<PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
 		<PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Resource Include="icon\tray.ico" />
 	</ItemGroup>
 </Project>

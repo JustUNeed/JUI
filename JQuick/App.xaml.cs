@@ -10,10 +10,14 @@ namespace JQuick
     /// </summary>
     public partial class App : Application
     {
+        private AppController? _app;
+        private TrayIconManager? _tray;
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
             ThemeManager.Initialize();
+
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;   // 退出由 AppController.Exit 控制
 
             var panel = new PanelWindow();
             panel.Show();              // 先 Show 注册拖放目标(随后 Loaded 里会自己藏起来)
@@ -25,9 +29,12 @@ namespace JQuick
             else
                 ball.Show();
 
-            MainWindow = ball;         // 主窗口设为悬浮球, 关它即退出
+            MainWindow = ball;         // 主窗口设为悬浮球
 
-         
+            // ★ 先创建协调中枢, 再注入面板, 最后给托盘
+            _app = new AppController(ball, panel);
+            panel.AttachController(_app);
+            _tray = new TrayIconManager(_app);   // 托盘把自己注册为通知实现
         }
 
         protected override void OnExit(ExitEventArgs e)

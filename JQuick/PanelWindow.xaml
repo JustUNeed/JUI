@@ -13,20 +13,27 @@
     </jui:JuiWindow.Resources>
 
     <DockPanel x:Name="PanelRoot" Margin="8">
-        <StackPanel DockPanel.Dock="Top"
-            Orientation="Horizontal"
-            HorizontalAlignment="Right"
-            Margin="0,0,0,6">
-            <ToggleButton x:Name="PinToggle"
-                  Content="常驻模式"
-                  Margin="0,0,6,0"
-                  Checked="PinToggle_Changed"
-                  Unchecked="PinToggle_Changed"/>
-            <Button x:Name="SettingsButton"
-            Content="设置"
-            Padding="8,2"
-            Click="SettingsButton_Click"/>
-        </StackPanel>
+        <!-- 顶部工具行: 常驻态下作为拖动手柄 -->
+        <Border x:Name="DragBar"
+                DockPanel.Dock="Top"
+                Background="Transparent"
+                Margin="0,0,0,6"
+                MouseLeftButtonDown="DragBar_MouseLeftButtonDown"
+                MouseMove="DragBar_MouseMove"
+                MouseLeftButtonUp="DragBar_MouseLeftButtonUp">
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                <ToggleButton x:Name="PinToggle"
+                              Content="常驻模式"
+                              Margin="0,0,6,0"
+                              Checked="PinToggle_Changed"
+                              Unchecked="PinToggle_Changed"/>
+                <Button x:Name="SettingsButton"
+                        Content="设置"
+                        Padding="8,2"
+                        Click="SettingsButton_Click"/>
+            </StackPanel>
+        </Border>
         <!-- 图片剪贴板 -->
         <local:ImageClipboardControl x:Name="ClipboardGrid"
                                      DockPanel.Dock="Top"
