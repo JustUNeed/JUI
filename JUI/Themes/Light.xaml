@@ -16,6 +16,9 @@
     <SolidColorBrush x:Key="Jui.Accent"          Color="#fd0000"/>
     <SolidColorBrush x:Key="Jui.Accent.Hover"    Color="#1A8AE0"/>
 
+    <!-- 强调色上的反白文字 -->
+    <SolidColorBrush x:Key="Jui.Text.OnAccent" Color="#FFFFFF"/>
+    
     <!-- 边框 / 分隔 -->
     <SolidColorBrush x:Key="Jui.Border"          Color="#D0D0D0"/>
 

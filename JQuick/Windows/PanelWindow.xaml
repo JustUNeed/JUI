@@ -23,11 +23,16 @@
                 MouseLeftButtonUp="DragBar_MouseLeftButtonUp">
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right">
-                <ToggleButton x:Name="PinToggle"
+                
+                
+                <jui:JuiIconToggleButton x:Name="PinToggle"
                               Content="常驻模式"
                               Margin="0,0,6,0"
                               Checked="PinToggle_Changed"
                               Unchecked="PinToggle_Changed"/>
+                
+                
+                
                 <Button x:Name="SettingsButton"
                         Content="设置"
                         Padding="8,2"
@@ -42,7 +47,10 @@
                                      ItemCornerRadius="4">
             <local:ImageClipboardControl.ItemTemplate>
                 <DataTemplate>
+        
+                    
                     <Grid x:Name="ItemRoot">
+                        
                         <!-- 占位背景, 始终在底层 -->
                         <Border Background="#1A000000" CornerRadius="6"/>
 
@@ -53,20 +61,13 @@
                    HorizontalAlignment="Center" VerticalAlignment="Center"
                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
 
-                        <Button x:Name="PART_DeleteButton" Content="✕" Width="18" Height="18"
-                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="2">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Visibility" Value="Hidden"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                        <jui:JuiDeleteBadge Click="DeleteImage_Click" Visibility="Hidden" x:Name="PART_DeleteButton"/>
                     </Grid>
+                    <DataTemplate.Triggers>
+                        <Trigger SourceName="ItemRoot" Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PART_DeleteButton" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </DataTemplate.Triggers>
                 </DataTemplate>
 
             </local:ImageClipboardControl.ItemTemplate>
@@ -103,22 +104,20 @@
                        Margin="2,2,2,4"
                        Foreground="{DynamicResource Jui.Text.Primary}"/>
 
-                        <!-- 删除按钮: 右上角, 悬停显示 -->
-                        <Button x:Name="PART_DeleteButton" Grid.Row="0" Content="✕"
-                    Width="18" Height="18"
-                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="2">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Visibility" Value="Hidden"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                 
+
+
+                        <jui:JuiDeleteBadge x:Name="PART_DeleteButton" Grid.Row="0"
+                    Visibility="Hidden"
+                    Click="RemoveShortcut_Click"/>
+
+
                     </Grid>
+                    <DataTemplate.Triggers>
+                        <Trigger SourceName="ItemRoot" Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PART_DeleteButton" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </DataTemplate.Triggers>
                 </DataTemplate>
             </local:AppLauncherControl.ItemTemplate>
 
@@ -139,23 +138,14 @@
 
                         </Border>
 
-                        <Button Content="✕" Width="18" Height="18"
-                        HorizontalAlignment="Right" VerticalAlignment="Top"
-                        Margin="2" Click="RemoveFolder_Click">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Visibility" Value="Hidden"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsMouseOver,
-                                             RelativeSource={RelativeSource AncestorType=Grid}}"
-                                             Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                        <jui:JuiDeleteBadge Visibility="Hidden" Click="RemoveFolder_Click" x:Name="PART_DeleteButton"/>
+                        
                     </Grid>
+                    <DataTemplate.Triggers>
+                        <Trigger SourceName="ItemRoot" Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PART_DeleteButton" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </DataTemplate.Triggers>
                 </DataTemplate>
             </local:FolderBoxControl.ItemTemplate>
         </local:FolderBoxControl>
@@ -176,21 +166,16 @@
                            TextTrimming="CharacterEllipsis"
                            Foreground="{DynamicResource Jui.Text.Primary}"/>
 
-                        <Button x:Name="PART_DeleteButton" Content="✕"
-                        Width="18" Height="18"
-                        HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,6,0">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Visibility" Value="Hidden"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                        <jui:JuiDeleteBadge x:Name="PART_DeleteButton"
+                    Visibility="Hidden"
+                    VerticalAlignment="Center" Margin="0,0,6,0"
+                    Click="RemoveText_Click"/>
                     </Grid>
+                    <DataTemplate.Triggers>
+                        <Trigger SourceName="ItemRoot" Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PART_DeleteButton" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </DataTemplate.Triggers>
                 </DataTemplate>
             </local:TextClipboardControl.ItemTemplate>
         </local:TextClipboardControl>

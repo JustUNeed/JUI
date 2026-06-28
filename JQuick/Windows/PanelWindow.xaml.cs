@@ -520,14 +520,33 @@ namespace JQuick
         private void DeleteImage_Click(object sender, RoutedEventArgs e)
         {
             if (ClipboardGrid.GetItemFromElement(sender as DependencyObject) is Photo p)
-                ClipboardGrid.Remove(p);
+                ClipboardGrid.RemoveItem(p);
+            e.Handled = true;
+        }
+
+        private void RemoveShortcut_Click(object sender, RoutedEventArgs e)
+        {
+            var item = Launcher.GetItemFromElement(sender as DependencyObject);
+            if (item != null)
+                Launcher.RemoveItem(item);
+            e.Handled = true;
         }
 
         private void RemoveFolder_Click(object sender, RoutedEventArgs e)
         {
             if (FolderBox.GetItemFromElement(sender as DependencyObject) is FolderItem f)
-                FolderBox.Remove(f);
+                FolderBox.RemoveItem(f);
+            e.Handled = true;
         }
+
+        private void RemoveText_Click(object sender, RoutedEventArgs e)
+        {
+            var item = TextClip.GetItemFromElement(sender as DependencyObject);
+            if (item != null)
+                TextClip.RemoveItem(item);
+            e.Handled = true;
+        }
+
 
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)

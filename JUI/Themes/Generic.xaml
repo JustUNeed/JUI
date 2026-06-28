@@ -5,7 +5,15 @@
         <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiWindow.xaml"/>
         <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiGrid.xaml"/>
         <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiList.xaml"/>
-        
+        <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiTextBox.xaml"/>
+        <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiNumberBox.xaml"/>
+        <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiButton.xaml"/>
+        <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiIconButton.xaml"/>
+        <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiIconToggleButton.xaml"/>
+        <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiToggleSwitch.xaml"/>
+        <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiMenu.xaml"/>
+        <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiToolTip.xaml"/>
+        <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiDeleteBadge.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
 </ResourceDictionary>
