@@ -51,6 +51,8 @@ namespace JQuick
             }
 
             _settings = new SettingsWindow();   // 应用级窗口, 不挂 Owner
+            _settings.Ball= Ball;
+
             _settings.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             _settings.Closed += (_, _) =>
             {

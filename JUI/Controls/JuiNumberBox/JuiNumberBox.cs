@@ -107,7 +107,7 @@ namespace JUI.Controls
         }
         public static readonly DependencyProperty CornerRadiusProperty =
             DependencyProperty.Register(nameof(CornerRadius), typeof(CornerRadius),
-                typeof(JuiNumberBox), new PropertyMetadata(new CornerRadius(6)));
+                typeof(JuiNumberBox), new PropertyMetadata(new CornerRadius(0)));
 
         // 只读: 显示文本("数值+单位")
         private static readonly DependencyPropertyKey ValueDisplayTextKey =

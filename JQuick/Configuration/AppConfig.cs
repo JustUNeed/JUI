@@ -20,6 +20,19 @@ namespace JQuick
         // 常驻模式下面板的位置
         public double PinnedLeft { get; set; } = double.NaN;
         public double PinnedTop { get; set; } = double.NaN;
+
+        // 悬浮球大小(直径), 范围 24~64
+        public double BallSize { get; set; } = 32;
+        // 悬浮球圆角, 范围 0~32
+        public double BallCornerRadius { get; set; } = 6;
+
+        // 悬浮球中间文字大小, 范围 8~32
+        public double BallFontSize { get; set; } = 14;
+
+        // 悬浮球背景色 / 文字颜色（十六进制 #RRGGBB）
+        public string BallColor { get; set; } = "#0A84FF";
+        public string BallTextColor { get; set; } = "#FFFFFF";
+
     }
 
     /// <summary>配置读写: %AppData%\JQuick\config.json</summary>

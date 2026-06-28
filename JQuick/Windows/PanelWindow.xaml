@@ -61,7 +61,7 @@
                    HorizontalAlignment="Center" VerticalAlignment="Center"
                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
 
-                        <jui:JuiDeleteBadge Click="DeleteImage_Click" Visibility="Hidden" x:Name="PART_DeleteButton"/>
+                        <jui:JuiDeleteBadge Visibility="Hidden" x:Name="PART_DeleteButton"/>
                     </Grid>
                     <DataTemplate.Triggers>
                         <Trigger SourceName="ItemRoot" Property="IsMouseOver" Value="True">
@@ -109,7 +109,7 @@
 
                         <jui:JuiDeleteBadge x:Name="PART_DeleteButton" Grid.Row="0"
                     Visibility="Hidden"
-                    Click="RemoveShortcut_Click"/>
+                    />
 
 
                     </Grid>
@@ -138,7 +138,7 @@
 
                         </Border>
 
-                        <jui:JuiDeleteBadge Visibility="Hidden" Click="RemoveFolder_Click" x:Name="PART_DeleteButton"/>
+                        <jui:JuiDeleteBadge Visibility="Hidden" x:Name="PART_DeleteButton"/>
                         
                     </Grid>
                     <DataTemplate.Triggers>
@@ -169,7 +169,7 @@
                         <jui:JuiDeleteBadge x:Name="PART_DeleteButton"
                     Visibility="Hidden"
                     VerticalAlignment="Center" Margin="0,0,6,0"
-                    Click="RemoveText_Click"/>
+                   />
                     </Grid>
                     <DataTemplate.Triggers>
                         <Trigger SourceName="ItemRoot" Property="IsMouseOver" Value="True">

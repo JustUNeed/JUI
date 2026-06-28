@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JUI.Controls;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -107,6 +108,8 @@ namespace JQuick
             string? dest = null;
             try
             {
+                JuiToast.Show("开始下载图片");
+
                 using var resp = await Http.GetAsync(url);
                 if (!resp.IsSuccessStatusCode) return null;
 
@@ -161,7 +164,12 @@ namespace JQuick
         {
             try
             {
-                if (File.Exists(path)) File.Delete(path);
+
+                if (File.Exists(path)) {
+                    JuiToast.Show("删除文件:\n"+ path);
+                    File.Delete(path);
+                }
+               
             }
             catch { /* 占用/权限等忽略 */ }
         }

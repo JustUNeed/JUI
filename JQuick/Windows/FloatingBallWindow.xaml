@@ -7,17 +7,19 @@
         TitleBarMode="Borderless"
         ShowInTaskbar="False"
         Topmost="True"
+          CornerRadius="0"
         AllowDrop="True">
+    
     <Border x:Name="Ball"
-        CornerRadius="6"
-        Background="{DynamicResource Jui.Accent}"
-        MouseLeftButtonDown="Ball_MouseLeftButtonDown"
-        MouseMove="Ball_MouseMove"
-        MouseLeftButtonUp="Ball_MouseLeftButtonUp"
-        MouseEnter="Ball_MouseEnter"
-        DragEnter="Ball_DragEnter"
-        DragOver="Ball_DragEnter">
-        <TextBlock Text="J" Foreground="White" FontWeight="Bold"
+    Background="{DynamicResource Jui.Accent}"
+    MouseLeftButtonDown="Ball_MouseLeftButtonDown"
+    MouseMove="Ball_MouseMove"
+    MouseLeftButtonUp="Ball_MouseLeftButtonUp"
+    MouseEnter="Ball_MouseEnter"
+    DragEnter="Ball_DragEnter"
+    DragOver="Ball_DragEnter">
+        <TextBlock x:Name="BallText"
+               Text="J" Foreground="White" FontWeight="Bold"
                HorizontalAlignment="Center" VerticalAlignment="Center"/>
     </Border>
 

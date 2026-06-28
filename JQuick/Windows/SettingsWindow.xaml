@@ -20,6 +20,59 @@
                   Margin="0,0,0,12"
                   Checked="StartupCheck_Changed"
                   Unchecked="StartupCheck_Changed"/>
+        <!-- 悬浮球大小 -->
+        <jui:JuiNumberBox x:Name="BallSizeBox"
+                  Label="悬浮球大小"
+                  Unit="px"
+                  Minimum="24" Maximum="64"
+                  Step="1" Decimals="0"
+                  Margin="0,0,0,12"
+                  Value="{Binding BallSize, Mode=TwoWay,
+                                  UpdateSourceTrigger=PropertyChanged}"
+                  ValueChanged="BallSizeBox_ValueChanged"/>
+
+        <!-- 悬浮球圆角 -->
+        <jui:JuiNumberBox x:Name="BallRadiusBox"
+                  Label="悬浮球圆角"
+                  Unit="px"
+                  Minimum="0" Maximum="32"
+                  Step="1" Decimals="0"
+                  Margin="0,0,0,12"
+                  Value="{Binding BallCornerRadius, Mode=TwoWay,
+                                  UpdateSourceTrigger=PropertyChanged}"
+                  ValueChanged="BallRadiusBox_ValueChanged"/>
+
+        <!-- 悬浮球文字大小 -->
+        <jui:JuiNumberBox x:Name="BallFontSizeBox"
+                  Label="文字大小"
+                  Unit="px"
+                  Minimum="8" Maximum="32"
+                  Step="1" Decimals="0"
+                  Margin="0,0,0,12"
+                  Value="{Binding BallFontSize, Mode=TwoWay,
+                                  UpdateSourceTrigger=PropertyChanged}"
+                  ValueChanged="BallFontSizeBox_ValueChanged"/>
+        <!-- 悬浮球背景色 -->
+        <DockPanel Margin="0,0,0,12">
+            <jui:JuiColorButton x:Name="BallColorBtn"
+                        DockPanel.Dock="Right"
+                        Width="48" Height="24"
+                        ColorChanged="BallColorBtn_ColorChanged"/>
+            <TextBlock Text="悬浮球颜色"
+               VerticalAlignment="Center"
+               Foreground="{DynamicResource Jui.Text.Primary}"/>
+        </DockPanel>
+
+        <!-- 悬浮球文字颜色 -->
+        <DockPanel Margin="0,0,0,12">
+            <jui:JuiColorButton x:Name="BallTextColorBtn"
+                        DockPanel.Dock="Right"
+                        Width="48" Height="24"
+                        ColorChanged="BallTextColorBtn_ColorChanged"/>
+            <TextBlock Text="文字颜色"
+               VerticalAlignment="Center"
+               Foreground="{DynamicResource Jui.Text.Primary}"/>
+        </DockPanel>
 
         <!-- 打开配置文件夹 -->
         <Button Content="打开配置文件夹"

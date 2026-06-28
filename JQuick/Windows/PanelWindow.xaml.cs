@@ -86,6 +86,26 @@ namespace JQuick
 
             // Ctrl+V 粘贴
             PreviewKeyDown += OnPreviewKeyDown;
+
+
+
+
+            ClipboardGrid.ImageClicked = async photo =>
+            {
+                var viewer = new JuiImageViewer { AutoPlaylist = true };
+                var win = new JuiWindow
+                {
+                    Title = "预览",
+                    Width = 900,
+                    Height = 700,
+                    TitleBarMode = JuiTitleBarMode.Immersive,
+                    Content = viewer
+                };
+                win.Show();                       // 窗口立刻出现(此时还没图)
+                await viewer.ShowAsync(photo.Path, photo.Thumbnail);// 后台解码, 解完才显示
+            };
+
+
         }
 
         private void OnLoadedInit(object sender, RoutedEventArgs e)
@@ -515,37 +535,6 @@ namespace JQuick
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool GetCursorPos(out POINT lpPoint);
 
-        // ===================== 原有删除逻辑 =====================
-
-        private void DeleteImage_Click(object sender, RoutedEventArgs e)
-        {
-            if (ClipboardGrid.GetItemFromElement(sender as DependencyObject) is Photo p)
-                ClipboardGrid.RemoveItem(p);
-            e.Handled = true;
-        }
-
-        private void RemoveShortcut_Click(object sender, RoutedEventArgs e)
-        {
-            var item = Launcher.GetItemFromElement(sender as DependencyObject);
-            if (item != null)
-                Launcher.RemoveItem(item);
-            e.Handled = true;
-        }
-
-        private void RemoveFolder_Click(object sender, RoutedEventArgs e)
-        {
-            if (FolderBox.GetItemFromElement(sender as DependencyObject) is FolderItem f)
-                FolderBox.RemoveItem(f);
-            e.Handled = true;
-        }
-
-        private void RemoveText_Click(object sender, RoutedEventArgs e)
-        {
-            var item = TextClip.GetItemFromElement(sender as DependencyObject);
-            if (item != null)
-                TextClip.RemoveItem(item);
-            e.Handled = true;
-        }
 
 
 

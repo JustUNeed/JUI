@@ -93,7 +93,7 @@ namespace JUI.Controls
                 nameof(CornerRadius),
                 typeof(CornerRadius),
                 typeof(JuiWindow),
-                new FrameworkPropertyMetadata(new CornerRadius(8), OnCornerRadiusChanged));
+                new FrameworkPropertyMetadata(new CornerRadius(0), OnCornerRadiusChanged));
 
         /// <summary>窗口圆角(由 RootBorder 绘制)。最大化时自动归零。</summary>
         public CornerRadius CornerRadius
@@ -114,7 +114,7 @@ namespace JUI.Controls
                 nameof(EffectiveCornerRadius),
                 typeof(CornerRadius),
                 typeof(JuiWindow),
-                new FrameworkPropertyMetadata(new CornerRadius(8)));
+                new FrameworkPropertyMetadata(new CornerRadius(0)));
 
         public static readonly DependencyProperty EffectiveCornerRadiusProperty =
             EffectiveCornerRadiusKey.DependencyProperty;

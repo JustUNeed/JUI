@@ -41,6 +41,8 @@ namespace JQuick
         /// <summary>左键点击一张图片时回调; 不设则使用默认行为(系统默认程序打开原图)。</summary>
         public Action<Photo>? ImageClicked { get; set; }
 
+
+
         public ImageClipboardControl()
         {
             Loaded += OnFirstLoaded;
@@ -51,6 +53,10 @@ namespace JQuick
                 if (item is Photo p) p.EnsureThumbnail();
             };
         }
+
+
+
+
 
         private static void OnAnyButtonClick(object sender, RoutedEventArgs e)
         {

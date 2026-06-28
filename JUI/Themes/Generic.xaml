@@ -14,6 +14,9 @@
         <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiMenu.xaml"/>
         <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiToolTip.xaml"/>
         <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiDeleteBadge.xaml"/>
+        <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiImageViewer.xaml"/>
+        <ResourceDictionary Source="/JUI;component/Themes/Styles/JuiColorButton.xaml"/>
+
     </ResourceDictionary.MergedDictionaries>
 
 </ResourceDictionary>
