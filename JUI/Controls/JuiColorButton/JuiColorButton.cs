@@ -92,47 +92,24 @@ namespace JUI.Controls
             if (_popup == null)
             {
                 _panel = new ColorPickerPanel { Width = 240 };
-                _panel.SelectedColor = SelectedColor;
-
-
-
-
                 _panel.ColorChanged += (_, c) => SelectedColor = c;
-                _panel.Confirmed += (_, c) =>
-                {
-                    SelectedColor = c;
-                    if (_popup != null) _popup.IsOpen = false;
-                };
-                _panel.Cancelled += (_, __) =>
-                {
-                    if (_popup != null) _popup.IsOpen = false;
-                };
 
                 _popup = new Popup
                 {
                     PlacementTarget = this,
                     Placement = PlacementMode.Bottom,
-                    StaysOpen = false,          // 点击外部自动关闭
+                    StaysOpen = false,           // 点外部自动关闭
                     AllowsTransparency = true,
                     PopupAnimation = PopupAnimation.Fade,
                     Child = _panel
                 };
-
-
-
-                _panel.setOldColor();
-
-
             }
 
-            // 每次打开同步当前颜色
-            if (_panel != null) {
-                _panel.SelectedColor = SelectedColor;
-                _panel.setOldColor();
-
-
-            }
+            // 打开时：当前色作为历史记录，同时作为初始选中色
+            _panel!.OriginalColor = SelectedColor;
+            _panel.SelectedColor = SelectedColor;
             _popup.IsOpen = true;
         }
+
     }
 }

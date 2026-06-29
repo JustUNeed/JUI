@@ -1,4 +1,6 @@
 ﻿using JUI.Controls;
+using JUI.Models;
+using JUI.Theming;
 using System.Windows;
 using System.Windows.Media;
 
@@ -16,26 +18,40 @@ namespace JQuick
         public SettingsWindow()
         {
             InitializeComponent();
+            DataContext = ConfigStore.Current;
 
             // 初始化勾选状态(以注册表为准), 避免触发事件
             _initializing = true;
-            StartupCheck.IsChecked = StartupHelper.IsEnabled();
+
+
+            StartupSwitch.IsChecked = StartupHelper.IsEnabled();
 
             // 初始化色块为当前配置色
             BallColorBtn.SelectedColor = ParseColor(ConfigStore.Current.BallColor, "#0A84FF");
             BallTextColorBtn.SelectedColor = ParseColor(ConfigStore.Current.BallTextColor, "#FFFFFF");
 
+
+            // 构造函数里，_initializing = true 之后、置回 false 之前：
+            ThemeSwitch.IsChecked = ThemeManager.Current == JuiTheme.Dark;
+
+
             _initializing = false;
 
 
-            DataContext = ConfigStore.Current;
+        
         }
 
-
-        private void StartupCheck_Changed(object sender, RoutedEventArgs e)
+        private void ThemeSwitch_Changed(object sender, RoutedEventArgs e)
         {
             if (_initializing) return;
-            StartupHelper.SetEnabled(StartupCheck.IsChecked == true);
+            var theme = ThemeSwitch.IsChecked == true ? JuiTheme.Dark : JuiTheme.Light;
+            ThemeManager.Apply(theme);   // 自动持久化到 settings.json 并触发 ThemeChanged
+        }
+
+        private void StartupSwitch_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_initializing) return;
+            StartupHelper.SetEnabled(StartupSwitch.IsChecked == true);
         }
 
 

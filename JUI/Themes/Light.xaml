@@ -13,7 +13,7 @@
     <SolidColorBrush x:Key="Jui.Text.Disabled"   Color="#AFAFAF"/>
 
     <!-- 强调:默认 + 悬停 -->
-    <SolidColorBrush x:Key="Jui.Accent"          Color="#fd0000"/>
+    <SolidColorBrush x:Key="Jui.Accent"          Color="#000000"/>
     <SolidColorBrush x:Key="Jui.Accent.Hover"    Color="#1A8AE0"/>
 
     <!-- 强调色上的反白文字 -->

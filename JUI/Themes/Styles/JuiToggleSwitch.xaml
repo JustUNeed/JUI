@@ -18,7 +18,7 @@
                         <Border x:Name="Track"
                                 CornerRadius="0"
                                 Background="{DynamicResource Jui.Surface.Active}"
-                                BorderBrush="{DynamicResource Jui.Accent}"
+                                BorderBrush="{DynamicResource Jui.Surface.Active}"
                                 BorderThickness="1"
                                 SnapsToDevicePixels="True"/>
                         <!-- 方形滑块 -->
@@ -27,7 +27,7 @@
                                    HorizontalAlignment="Left"
                                    VerticalAlignment="Center"
                                    Margin="2,0,0,0"
-                                   Fill="{DynamicResource Jui.Accent}"
+                                   Fill="{DynamicResource Jui.Surface.Window}"
                                    SnapsToDevicePixels="True">
                             <Rectangle.RenderTransform>
                                 <TranslateTransform x:Name="ThumbTransform" X="0"/>
@@ -39,6 +39,10 @@
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Track" Property="Background"
                                     Value="{DynamicResource Jui.Accent}"/>
+
+                            <Setter TargetName="Track" Property="BorderBrush"
+        Value="{DynamicResource Jui.Accent}"/>
+                           
                             <Setter TargetName="Thumb" Property="Fill"
                                     Value="{DynamicResource Jui.Surface.Window}"/>
                             <Trigger.EnterActions>

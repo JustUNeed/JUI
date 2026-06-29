@@ -7,6 +7,7 @@
         Width="400" Height="500"
         TitleBarMode="NoTitleBar"
         ShowInTaskbar="False"
+             
         AllowDrop="True">
     <jui:JuiWindow.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
@@ -45,6 +46,12 @@
                                      ItemWidth="80" ItemHeight="80"
                                      ItemSpacing="2" MaxRows="3"
                                      ItemCornerRadius="4">
+            <local:ImageClipboardControl.EmptyContent>
+                <TextBlock Text="暂无图片，复制图片或拖入此处"
+                   Foreground="{DynamicResource Jui.Text.Secondary}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+            </local:ImageClipboardControl.EmptyContent>
             <local:ImageClipboardControl.ItemTemplate>
                 <DataTemplate>
         
@@ -78,6 +85,12 @@
                                     DockPanel.Dock="Top"
                                   ItemWidth="80" ItemHeight="90"
                                   ItemSpacing="2" ItemCornerRadius="4">
+            <local:AppLauncherControl.EmptyContent>
+                <TextBlock Text="暂无快捷方式，请将文件拖入此处"
+                   Foreground="{DynamicResource Jui.Text.Secondary}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+            </local:AppLauncherControl.EmptyContent>
             <local:AppLauncherControl.ItemTemplate>
                 <DataTemplate>
                     <Grid x:Name="ItemRoot" Background="Transparent">

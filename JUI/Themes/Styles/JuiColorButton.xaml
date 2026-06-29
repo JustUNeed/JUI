@@ -4,10 +4,10 @@
 
     <!-- 色块按钮 -->
     <Style TargetType="{x:Type c:JuiColorButton}">
-        <Setter Property="Width" Value="40"/>
-        <Setter Property="Height" Value="24"/>
+        <Setter Property="Width" Value="32"/>
+        <Setter Property="Height" Value="18"/>
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type c:JuiColorButton}">
@@ -42,22 +42,20 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type c:ColorPickerPanel}">
                     <Border Background="{DynamicResource Jui.Surface.Default}"
-                            BorderBrush="{DynamicResource Jui.Border}"
-                            BorderThickness="1" CornerRadius="6" Padding="10">
+                        BorderBrush="{DynamicResource Jui.Border}"
+                        BorderThickness="1" CornerRadius="6" Padding="10">
                         <StackPanel>
                             <!-- SV 区 + 色相条 -->
-                            <Grid Height="180">
+                            <Grid Height="160">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="4"/>
+                                    <ColumnDefinition Width="8"/>
                                     <ColumnDefinition Width="18"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- 饱和度-明度方形区 -->
                                 <Border x:Name="PART_SVPanel" Grid.Column="0"
-                                        CornerRadius="4" ClipToBounds="True">
+                                    CornerRadius="4" ClipToBounds="True">
                                     <Grid>
-                                        <!-- 横向: 白 -> 纯色相 -->
                                         <Rectangle x:Name="PART_SVColorLayer">
                                             <Rectangle.Fill>
                                                 <SolidColorBrush Color="Red"/>
@@ -71,7 +69,6 @@
                                                 </LinearGradientBrush>
                                             </Rectangle.Fill>
                                         </Rectangle>
-                                        <!-- 纵向: 透明 -> 黑 -->
                                         <Rectangle>
                                             <Rectangle.Fill>
                                                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -82,20 +79,19 @@
                                         </Rectangle>
                                         <Canvas x:Name="PART_SVCanvas" IsHitTestVisible="False">
                                             <Ellipse x:Name="PART_SVCursor" Width="12" Height="12"
-                                                     Stroke="White" StrokeThickness="2"
-                                                     IsHitTestVisible="False">
+                                                 Stroke="White" StrokeThickness="2"
+                                                 IsHitTestVisible="False">
                                                 <Ellipse.Effect>
-                                                    <DropShadowEffect ShadowDepth="0"
-                                                        BlurRadius="2" Color="Black" Opacity="0.6"/>
+                                                    <DropShadowEffect ShadowDepth="0" BlurRadius="2"
+                                                                  Color="Black" Opacity="0.6"/>
                                                 </Ellipse.Effect>
                                             </Ellipse>
                                         </Canvas>
                                     </Grid>
                                 </Border>
 
-                                <!-- 色相竖条 -->
                                 <Border x:Name="PART_HueBar" Grid.Column="2"
-                                        CornerRadius="3" ClipToBounds="True">
+                                    CornerRadius="3" ClipToBounds="True">
                                     <Grid>
                                         <Rectangle>
                                             <Rectangle.Fill>
@@ -111,51 +107,60 @@
                                             </Rectangle.Fill>
                                         </Rectangle>
                                         <Canvas x:Name="PART_HueCanvas" IsHitTestVisible="False">
-                                            <Rectangle x:Name="PART_HueCursor"
-                                                       Width="18" Height="4"
-                                                       Stroke="White" StrokeThickness="1.5"
-                                                       Fill="#80FFFFFF" IsHitTestVisible="False"/>
+                                            <Rectangle x:Name="PART_HueCursor" Width="18" Height="4"
+                                                   Stroke="White" StrokeThickness="1.5"
+                                                   Fill="#80FFFFFF" IsHitTestVisible="False"/>
                                         </Canvas>
                                     </Grid>
                                 </Border>
                             </Grid>
 
-                            <!-- 预览 + Hex 输入 -->
-                            <Grid Margin="0,4,0,0">
+                            <!-- 历史色 + 当前色 + Hex 输入 -->
+                            <Grid Margin="0,10,0,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="28"/>
-                                    <ColumnDefinition Width="4"/>
-                                    <ColumnDefinition Width="28"/>
-                                    <ColumnDefinition Width="4"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <!-- 历史色 -->
+                                    <ColumnDefinition Width="Auto"/>
+                                    <!-- 当前色 -->
+                                    <ColumnDefinition Width="8"/>
                                     <ColumnDefinition Width="*"/>
+                                    <!-- Hex -->
                                 </Grid.ColumnDefinitions>
-                                <Border x:Name="PART_oldColor" Grid.Column="0"
-               CornerRadius="0" Height="28" 
-               BorderBrush="{DynamicResource Jui.Border}"
-               />
-                                <Border x:Name="PART_Preview" Grid.Column="2"
-                                        CornerRadius="0" Height="28"
-                                        BorderBrush="{DynamicResource Jui.Border}"
-                                        BorderThickness="0"/>
-                                <c:JuiTextBox x:Name="PART_HexBox" Grid.Column="4"
-                                         VerticalContentAlignment="Center"
-                                         Background="{DynamicResource Jui.Surface.Window}"
-                                         Foreground="{DynamicResource Jui.Text.Primary}"
-                                         Padding="6,0"/>
-                            </Grid>
 
-                            <!-- 确定 / 取消 -->
-                            <StackPanel Orientation="Horizontal"
-                                        HorizontalAlignment="Right" Margin="0,10,0,0">
-                                <c:JuiButton  Content="取消"
-                                             Width="60" Margin="0,0,8,0"/>
-                                <c:JuiButton x:Name="PART_OK" Content="确定" Width="60"/>
-                            </StackPanel>
+                                <!-- 历史色：可点击恢复 -->
+                                <Button x:Name="PART_History" Grid.Column="0"
+                                    Width="26" Height="28" Cursor="Hand"
+                                    ToolTip="点击恢复打开前的颜色">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{DynamicResource Jui.Border}"
+                                                BorderThickness="1"
+                                                CornerRadius="4,0,0,4"/>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+
+                                <!-- 当前色 -->
+                                <Border x:Name="PART_Preview" Grid.Column="1"
+                                    Width="26" Height="28"
+                                    BorderBrush="{DynamicResource Jui.Border}"
+                                    BorderThickness="1,1,1,1"
+                                    CornerRadius="0,4,4,0"/>
+
+                                <TextBox x:Name="PART_HexBox" Grid.Column="3"
+                                     VerticalContentAlignment="Center"
+                                     Background="{DynamicResource Jui.Surface.Window}"
+                                     Foreground="{DynamicResource Jui.Text.Primary}"
+                                     BorderBrush="{DynamicResource Jui.Border}"
+                                     BorderThickness="1" Padding="6,0"/>
+                            </Grid>
                         </StackPanel>
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
 
 </ResourceDictionary>

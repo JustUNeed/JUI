@@ -11,28 +11,22 @@ namespace JUI.Controls
 {
     public class ColorPickerPanel : Control
     {
-        private Border? _svPanel;        // 饱和度-明度区
+        private Border? _svPanel;
         private Canvas? _svCanvas;
         private Ellipse? _svCursor;
-        private Rectangle? _svColorLayer; // 横向 白->纯色相
-        private Border? _hueBar;          // 色相条
+        private Rectangle? _svColorLayer;
+        private Border? _hueBar;
         private Canvas? _hueCanvas;
         private Rectangle? _hueCursor;
-        private Border? _oldcolor;
-        private Border? _preview;
-       
+        private Border? _preview;        // 当前色
+        private ButtonBase? _history;    // 历史色（可点击恢复）
         private TextBox? _hexBox;
-        private ButtonBase? _ok;
-        private ButtonBase? _cancel;
 
         private bool _svDragging;
         private bool _hueDragging;
         private bool _updating;
 
-        // HSV 状态
-        private double _h;  // 0~360
-        private double _s;  // 0~1
-        private double _v;  // 0~1
+        private double _h, _s, _v;
 
         static ColorPickerPanel()
         {
@@ -65,27 +59,32 @@ namespace JUI.Controls
 
         #endregion
 
-        public event EventHandler<Color>? ColorChanged;
-        public event EventHandler<Color>? Confirmed;
-        public event EventHandler? Cancelled;
+        #region OriginalColor (历史色)
 
+        public static readonly DependencyProperty OriginalColorProperty =
+            DependencyProperty.Register(
+                nameof(OriginalColor), typeof(Color), typeof(ColorPickerPanel),
+                new PropertyMetadata(Colors.Red, OnOriginalColorChanged));
 
-
-
-        public void setOldColor()
+        /// <summary>打开弹窗时的颜色，作为历史记录显示在左下角。</summary>
+        public Color OriginalColor
         {
-            if (_oldcolor != null)
-            { 
-                _oldcolor.Background = new SolidColorBrush(SelectedColor);
-            }  
-                    
-          
+            get => (Color)GetValue(OriginalColorProperty);
+            set => SetValue(OriginalColorProperty, value);
         }
+
+        private static void OnOriginalColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ((ColorPickerPanel)d).UpdateHistorySwatch();
+        }
+
+        #endregion
+
+        public event EventHandler<Color>? ColorChanged;
 
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
-
             DetachHandlers();
 
             _svPanel = GetTemplateChild("PART_SVPanel") as Border;
@@ -96,10 +95,8 @@ namespace JUI.Controls
             _hueCanvas = GetTemplateChild("PART_HueCanvas") as Canvas;
             _hueCursor = GetTemplateChild("PART_HueCursor") as Rectangle;
             _preview = GetTemplateChild("PART_Preview") as Border;
-            _oldcolor = GetTemplateChild("PART_oldColor") as Border;
+            _history = GetTemplateChild("PART_History") as ButtonBase;
             _hexBox = GetTemplateChild("PART_HexBox") as TextBox;
-            _ok = GetTemplateChild("PART_OK") as ButtonBase;
-            _cancel = GetTemplateChild("PART_Cancel") as ButtonBase;
 
             if (_svPanel != null)
             {
@@ -117,17 +114,20 @@ namespace JUI.Controls
             }
             if (_hexBox != null)
                 _hexBox.KeyDown += HexKeyDown;
-            if (_ok != null)
-                _ok.Click += (_, __) => Confirmed?.Invoke(this, SelectedColor);
-            if (_cancel != null)
-                _cancel.Click += (_, __) => Cancelled?.Invoke(this, EventArgs.Empty);
-
-            setOldColor();
-
+            if (_history != null)
+                _history.Click += (_, __) =>
+                {
+                    // 点历史块 → 恢复到打开前的颜色
+                    RgbToHsv(OriginalColor, out _h, out _s, out _v);
+                    CommitHsv();
+                };
 
             RgbToHsv(SelectedColor, out _h, out _s, out _v);
-            Dispatcher.BeginInvoke(new Action(UpdateVisual),
-                System.Windows.Threading.DispatcherPriority.Loaded);
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                UpdateVisual();
+                UpdateHistorySwatch();
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private void DetachHandlers()
@@ -154,27 +154,22 @@ namespace JUI.Controls
             _svPanel?.CaptureMouse();
             UpdateSvFromPoint(e.GetPosition(_svPanel));
         }
-
         private void SvMove(object sender, MouseEventArgs e)
         {
             if (_svDragging) UpdateSvFromPoint(e.GetPosition(_svPanel));
         }
-
         private void SvUp(object sender, MouseButtonEventArgs e)
         {
             _svDragging = false;
             _svPanel?.ReleaseMouseCapture();
         }
-
         private void UpdateSvFromPoint(Point p)
         {
             if (_svPanel == null) return;
             double w = _svPanel.ActualWidth, hgt = _svPanel.ActualHeight;
             if (w <= 0 || hgt <= 0) return;
-            double x = Math.Clamp(p.X, 0, w);
-            double y = Math.Clamp(p.Y, 0, hgt);
-            _s = x / w;
-            _v = 1 - y / hgt;
+            _s = Math.Clamp(p.X, 0, w) / w;
+            _v = 1 - Math.Clamp(p.Y, 0, hgt) / hgt;
             CommitHsv();
         }
 
@@ -188,25 +183,21 @@ namespace JUI.Controls
             _hueBar?.CaptureMouse();
             UpdateHueFromPoint(e.GetPosition(_hueBar));
         }
-
         private void HueMove(object sender, MouseEventArgs e)
         {
             if (_hueDragging) UpdateHueFromPoint(e.GetPosition(_hueBar));
         }
-
         private void HueUp(object sender, MouseButtonEventArgs e)
         {
             _hueDragging = false;
             _hueBar?.ReleaseMouseCapture();
         }
-
         private void UpdateHueFromPoint(Point p)
         {
             if (_hueBar == null) return;
             double hgt = _hueBar.ActualHeight;
             if (hgt <= 0) return;
-            double y = Math.Clamp(p.Y, 0, hgt);
-            _h = y / hgt * 360.0;
+            _h = Math.Clamp(p.Y, 0, hgt) / hgt * 360.0;
             if (_h >= 360) _h = 359.999;
             CommitHsv();
         }
@@ -224,7 +215,6 @@ namespace JUI.Controls
             e.Handled = true;
         }
 
-        /// <summary>把当前 HSV 应用到 SelectedColor 并刷新界面。</summary>
         private void CommitHsv()
         {
             var c = HsvToRgb(_h, _s, _v);
@@ -235,15 +225,12 @@ namespace JUI.Controls
             UpdateVisual();
         }
 
-        /// <summary>根据当前 HSV 刷新光标位置、渐变层、预览、Hex 文本。</summary>
         private void UpdateVisual()
         {
-            // SV 区的横向纯色相
             if (_svColorLayer != null)
                 _svColorLayer.Fill = new SolidColorBrush(HsvToRgb(_h, 1, 1));
 
-            // SV 光标
-            if (_svPanel != null && _svCursor != null && _svCanvas != null)
+            if (_svPanel != null && _svCursor != null)
             {
                 double w = _svPanel.ActualWidth, hgt = _svPanel.ActualHeight;
                 if (w > 0 && hgt > 0)
@@ -252,8 +239,6 @@ namespace JUI.Controls
                     Canvas.SetTop(_svCursor, (1 - _v) * hgt - _svCursor.Height / 2);
                 }
             }
-
-            // 色相光标
             if (_hueBar != null && _hueCursor != null)
             {
                 double hgt = _hueBar.ActualHeight;
@@ -264,15 +249,15 @@ namespace JUI.Controls
             var col = HsvToRgb(_h, _s, _v);
             if (_preview != null)
                 _preview.Background = new SolidColorBrush(col);
-
-      
-
             if (_hexBox != null && !_hexBox.IsKeyboardFocusWithin)
-                _hexBox.Text = "#" + col.R.ToString("X2") + col.G.ToString("X2") + col.B.ToString("X2");
+                _hexBox.Text = ColorToHex(col);
         }
 
-    
-
+        private void UpdateHistorySwatch()
+        {
+            if (_history != null)
+                _history.Background = new SolidColorBrush(OriginalColor);
+        }
 
         #region 颜色转换 / 解析
 
@@ -301,16 +286,17 @@ namespace JUI.Controls
             double max = Math.Max(r, Math.Max(g, b));
             double min = Math.Min(r, Math.Min(g, b));
             double delta = max - min;
-
             if (delta < 1e-6) h = 0;
             else if (max == r) h = 60 * (((g - b) / delta) % 6);
             else if (max == g) h = 60 * (((b - r) / delta) + 2);
             else h = 60 * (((r - g) / delta) + 4);
             if (h < 0) h += 360;
-
             s = max < 1e-6 ? 0 : delta / max;
             v = max;
         }
+
+        public static string ColorToHex(Color c)
+            => "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
 
         public static bool TryParseHex(string? text, out Color color)
         {
@@ -322,10 +308,7 @@ namespace JUI.Controls
             if (text.Length != 6) return false;
             if (int.TryParse(text, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int v))
             {
-                color = Color.FromRgb(
-                    (byte)((v >> 16) & 0xFF),
-                    (byte)((v >> 8) & 0xFF),
-                    (byte)(v & 0xFF));
+                color = Color.FromRgb((byte)((v >> 16) & 0xFF), (byte)((v >> 8) & 0xFF), (byte)(v & 0xFF));
                 return true;
             }
             return false;

@@ -8,18 +8,32 @@
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
     <StackPanel Margin="16" VerticalAlignment="Top">
+
+        <DockPanel Margin="0,0,0,12">
+            <jui:JuiToggleSwitch x:Name="ThemeSwitch"
+                         DockPanel.Dock="Right"
+                         Checked="ThemeSwitch_Changed"
+                         Unchecked="ThemeSwitch_Changed"/>
+            <TextBlock Text="深色模式"
+               VerticalAlignment="Center"
+               Foreground="{DynamicResource Jui.Text.Primary}"/>
+        </DockPanel>
+        
         <TextBlock Text="基础设置"
                    FontSize="14" FontWeight="Bold"
                    Foreground="{DynamicResource Jui.Text.Primary}"
                    Margin="0,0,0,12"/>
 
         <!-- 开机自启动 -->
-        <CheckBox x:Name="StartupCheck"
-                  Content="开机自启动"
-                  Foreground="{DynamicResource Jui.Text.Primary}"
-                  Margin="0,0,0,12"
-                  Checked="StartupCheck_Changed"
-                  Unchecked="StartupCheck_Changed"/>
+        <DockPanel Margin="0,0,0,12">
+            <jui:JuiToggleSwitch x:Name="StartupSwitch"
+                         DockPanel.Dock="Right"
+                         Checked="StartupSwitch_Changed"
+                         Unchecked="StartupSwitch_Changed"/>
+            <TextBlock Text="开机自启动"
+               VerticalAlignment="Center"
+               Foreground="{DynamicResource Jui.Text.Primary}"/>
+        </DockPanel>
         <!-- 悬浮球大小 -->
         <jui:JuiNumberBox x:Name="BallSizeBox"
                   Label="悬浮球大小"
@@ -56,7 +70,7 @@
         <DockPanel Margin="0,0,0,12">
             <jui:JuiColorButton x:Name="BallColorBtn"
                         DockPanel.Dock="Right"
-                        Width="48" Height="24"
+                        
                         ColorChanged="BallColorBtn_ColorChanged"/>
             <TextBlock Text="悬浮球颜色"
                VerticalAlignment="Center"
@@ -67,7 +81,7 @@
         <DockPanel Margin="0,0,0,12">
             <jui:JuiColorButton x:Name="BallTextColorBtn"
                         DockPanel.Dock="Right"
-                        Width="48" Height="24"
+                        
                         ColorChanged="BallTextColorBtn_ColorChanged"/>
             <TextBlock Text="文字颜色"
                VerticalAlignment="Center"
