@@ -21,22 +21,18 @@ namespace JQuick
 
         private Rect _ballRect;
 
-        // 常驻模式
+        // 常驻模式:仅本次运行期间有效, 不持久化
         public bool Pinned { get; private set; }
 
-
-
-
+        // 常驻态下面板位置(仅内存记忆, 不写盘)
+        private double _pinnedLeft = double.NaN;
+        private double _pinnedTop = double.NaN;
 
         private bool _barDragging;
         private Point _barDragStartCursor;
         private double _barDragStartLeft, _barDragStartTop;
 
         public AppController? Controller { get; set; }
-
-
-
-
 
         public PanelWindow()
         {
@@ -71,24 +67,20 @@ namespace JQuick
                 }
             };
 
-            // 常驻模式下用户拖动面板时记录位置
+            // 常驻模式下用户拖动面板时记录位置(仅内存, 不写盘)
             LocationChanged += (_, _) =>
             {
                 if (Pinned && _shown)
                 {
-                    ConfigStore.Current.PinnedLeft = Left;
-                    ConfigStore.Current.PinnedTop = Top;
+                    _pinnedLeft = Left;
+                    _pinnedTop = Top;
                 }
             };
 
             Loaded += OnLoadedInit;
 
-
             // Ctrl+V 粘贴
             PreviewKeyDown += OnPreviewKeyDown;
-
-
-
 
             ClipboardGrid.ImageClicked = async photo =>
             {
@@ -104,37 +96,14 @@ namespace JQuick
                 win.Show();                       // 窗口立刻出现(此时还没图)
                 await viewer.ShowAsync(photo.Path, photo.Thumbnail);// 后台解码, 解完才显示
             };
-
-
         }
 
         private void OnLoadedInit(object sender, RoutedEventArgs e)
         {
+            // ★ 启动时只把自己藏起来, 永远不进入常驻态(常驻不再持久化恢复)。
             Opacity = 0;
             Hide();
-
-            if (ConfigStore.Current.Pinned)
-            {
-                var cfg = ConfigStore.Current;
-
-                // 校验常驻位置是否在任一屏幕的可见范围内
-                bool posValid =
-                    !double.IsNaN(cfg.PinnedLeft) && !double.IsNaN(cfg.PinnedTop) &&
-                    IsOnScreen(cfg.PinnedLeft, cfg.PinnedTop, Width, Height);
-
-                if (!posValid)
-                {
-                    // 位置无效 -> 用屏幕中心兜底
-                    var area = SystemParameters.WorkArea;
-                    cfg.PinnedLeft = area.Left + (area.Width - Width) / 2;
-                    cfg.PinnedTop = area.Top + (area.Height - Height) / 2;
-                }
-
-                PinToggle.IsChecked = true;
-                EnterPinned(restorePosition: true);
-            }
         }
-
 
         private void DragBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -164,12 +133,10 @@ namespace JQuick
             _barDragging = false;
             DragBar.ReleaseMouseCapture();
 
-            // 常驻位置实时持久化(LocationChanged 也会记, 这里兜底保存落盘)
-            ConfigStore.Current.PinnedLeft = Left;
-            ConfigStore.Current.PinnedTop = Top;
-            ConfigStore.Save();
+            // 常驻位置仅内存记忆(不写盘)
+            _pinnedLeft = Left;
+            _pinnedTop = Top;
         }
-
 
         private void OnPreviewKeyDown(object sender, KeyEventArgs e)
         {
@@ -178,10 +145,8 @@ namespace JQuick
             {
                 PasteFromClipboard();
                 e.Handled = true;
-
             }
         }
-
 
         /// <summary>
         /// Ctrl+V 粘贴: 把剪贴板内容包成 DataObject, 复用各控件的 ExternalDropHandler 解析,
@@ -315,7 +280,6 @@ namespace JQuick
             return area.IntersectsWith(rect);
         }
 
-
         private string? SaveBitmapToTemp(System.Windows.Media.Imaging.BitmapSource? bmp)
         {
             if (bmp == null) return null;
@@ -335,7 +299,6 @@ namespace JQuick
             catch { return null; }
         }
 
-
         // ===================== 常驻开关 =====================
 
         private void PinToggle_Changed(object sender, RoutedEventArgs e)
@@ -346,10 +309,12 @@ namespace JQuick
                 ExitPinned();
         }
 
-        private void EnterPinned(bool restorePosition = false)
+        /// <summary>
+        /// 进入常驻(仅本次运行有效):隐藏悬浮球, 面板停在当前位置常显。不写任何持久化常驻状态。
+        /// </summary>
+        private void EnterPinned()
         {
             Pinned = true;
-            ConfigStore.Current.Pinned = true;
 
             _leaveTimer.Stop();            // 常驻不自动收起
             _shown = true;
@@ -357,52 +322,28 @@ namespace JQuick
             // 隐藏悬浮球
             Ball?.HideBall();
 
-            if (restorePosition)
-            {
-                // 启动恢复: 用记录的常驻位置
-                var cfg = ConfigStore.Current;
-                if (!double.IsNaN(cfg.PinnedLeft) && !double.IsNaN(cfg.PinnedTop))
-                {
-                    Left = cfg.PinnedLeft;
-                    Top = cfg.PinnedTop;
-                }
-                else
-                {
-                    var area = SystemParameters.WorkArea;
-                    Left = area.Left + (area.Width - Width) / 2;
-                    Top = area.Top + (area.Height - Height) / 2;
-                }
-            }
-            else
-            {
-                // 运行时点开关: 保持当前位置, 仅记录
-                ConfigStore.Current.PinnedLeft = Left;
-                ConfigStore.Current.PinnedTop = Top;
-            }
+            // 记录当前位置(仅内存)
+            _pinnedLeft = Left;
+            _pinnedTop = Top;
 
             Opacity = 1;
             Show();
             Activate();
             Focus();
-            ConfigStore.Save();
+            // ★ 不写 ConfigStore, 常驻态不持久化
         }
 
+        /// <summary>退出常驻:面板恢复"鼠标离开自动收起", 悬浮球重新显示。不写持久化。</summary>
         private void ExitPinned()
         {
             Pinned = false;
-            ConfigStore.Current.Pinned = false;
-            ConfigStore.Save();
 
-            // 退出常驻: 面板暂时还留着, 重新启用"鼠标离开才消失"的逻辑
             _shown = true;
             _guardUntil = DateTime.Now.AddMilliseconds(GuardMs);
             _leaveTimer.Start();
 
             // 悬浮球重新画出来
             Ball?.ShowBall();
-
-
-        
         }
 
         // ===================== 弹出在悬浮球旁 =====================
@@ -535,9 +476,6 @@ namespace JQuick
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool GetCursorPos(out POINT lpPoint);
 
-
-
-
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
             // 常驻态下点关闭: 不退出程序, 改为退出常驻 + 回到悬浮球
@@ -550,16 +488,12 @@ namespace JQuick
             base.OnClosing(e);
         }
 
-
         private SettingsWindow? _settingsWindow;
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
             Controller?.OpenSettings();
         }
-
-
-
 
         // 注入后调用一次, 订阅设置窗口开关事件
         public void AttachController(AppController app)
@@ -575,10 +509,5 @@ namespace JQuick
                 }
             };
         }
-
-
-
-
-
     }
 }

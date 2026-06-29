@@ -85,5 +85,8 @@ namespace JQuick
         // ===================== 后期扩展示例 =====================
         // private SomeWindow? _someWindow;
         // public void OpenSomeWindow() { ... 同 OpenSettings 的单例模式 ... }
+
+
+    
     }
 }

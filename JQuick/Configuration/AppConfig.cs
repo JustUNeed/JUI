@@ -15,12 +15,6 @@ namespace JQuick
         public double PanelWidth { get; set; } = 400;
         public double PanelHeight { get; set; } = 500;
 
-        // 常驻模式
-        public bool Pinned { get; set; } = false;
-        // 常驻模式下面板的位置
-        public double PinnedLeft { get; set; } = double.NaN;
-        public double PinnedTop { get; set; } = double.NaN;
-
         // 悬浮球大小(直径), 范围 24~64
         public double BallSize { get; set; } = 32;
         // 悬浮球圆角, 范围 0~32
@@ -33,6 +27,10 @@ namespace JQuick
         public string BallColor { get; set; } = "#0A84FF";
         public string BallTextColor { get; set; } = "#FFFFFF";
 
+  
+
+        // 悬浮球显示的文字(只取一个字符)
+        public string BallText { get; set; } = "J";
     }
 
     /// <summary>配置读写: %AppData%\JQuick\config.json</summary>

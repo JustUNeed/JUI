@@ -35,6 +35,16 @@ namespace JQuick
             ThemeSwitch.IsChecked = ThemeManager.Current == JuiTheme.Dark;
 
 
+            // 初始化色块为当前配置色
+            BallColorBtn.SelectedColor = ParseColor(ConfigStore.Current.BallColor, "#0A84FF");
+            BallTextColorBtn.SelectedColor = ParseColor(ConfigStore.Current.BallTextColor, "#FFFFFF");
+
+            // ★ 初始化悬浮球文字输入框
+            BallTextBox.Text = ConfigStore.Current.BallText;
+
+            ThemeSwitch.IsChecked = ThemeManager.Current == JuiTheme.Dark;
+
+
             _initializing = false;
 
 
@@ -99,6 +109,17 @@ namespace JQuick
             string hex = BallTextColorBtn.HexColor;
             Ball?.SetBallTextColor(hex);
             ConfigStore.Current.BallTextColor = hex;
+            ConfigStore.Save();
+        }
+
+
+        private void BallTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_initializing) return;
+
+            string text = BallTextBox.Text;
+            Ball?.SetBallText(text);                 // 实时更新悬浮球(内部已做"只取一个字 + 空回退")
+            ConfigStore.Current.BallText = BallTextBox.Text;
             ConfigStore.Save();
         }
 

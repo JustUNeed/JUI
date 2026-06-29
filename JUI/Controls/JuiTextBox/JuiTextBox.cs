@@ -21,7 +21,7 @@ namespace JUI.Controls
 
         public static readonly DependencyProperty CornerRadiusProperty =
             DependencyProperty.Register(nameof(CornerRadius), typeof(CornerRadius),
-                typeof(JuiTextBox), new PropertyMetadata(new CornerRadius(6)));
+                typeof(JuiTextBox), new PropertyMetadata(new CornerRadius(0)));
 
         /// <summary>占位提示文字(内容为空且未聚焦时显示)。</summary>
         public string Placeholder

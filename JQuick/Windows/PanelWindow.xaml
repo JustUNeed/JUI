@@ -5,6 +5,7 @@
         xmlns:jui="clr-namespace:JUI.Controls;assembly=JUI"
         Title="图片剪贴板"
         Width="300" 
+              
         TitleBarMode="NoTitleBar"
         ShowInTaskbar="False"
              

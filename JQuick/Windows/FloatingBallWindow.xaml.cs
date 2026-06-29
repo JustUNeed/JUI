@@ -18,9 +18,6 @@ namespace JQuick
         private double _dragStartLeft;
         private double _dragStartTop;
 
-
-
-
         public FloatingBallWindow(PanelWindow panel)
         {
             InitializeComponent();
@@ -31,33 +28,24 @@ namespace JQuick
 
             var cfg = ConfigStore.Current;
 
-
-
             // 应用已保存的悬浮球大小
             SetBallSize(cfg.BallSize);
             SetBallCornerRadius(cfg.BallCornerRadius);
             SetBallFontSize(cfg.BallFontSize);
             SetBallColor(cfg.BallColor);
             SetBallTextColor(cfg.BallTextColor);
-
+            SetBallText(cfg.BallText);
 
             var area = SystemParameters.WorkArea;
             Left = double.IsNaN(cfg.BallLeft) ? area.Right - Width - 8 : cfg.BallLeft;
             Top = double.IsNaN(cfg.BallTop) ? area.Top + 200 : cfg.BallTop;
-
-    
 
             LocationChanged += (_, _) =>
             {
                 ConfigStore.Current.BallLeft = Left;
                 ConfigStore.Current.BallTop = Top;
             };
-
-
-     
-
         }
-
 
         /// <summary>实时设置悬浮球圆角(0~32)。</summary>
         public void SetBallCornerRadius(double radius)
@@ -72,8 +60,6 @@ namespace JQuick
             size = Math.Clamp(size, 8, 32);
             BallText.FontSize = size;
         }
-
-
 
         /// <summary>实时设置悬浮球大小(直径), 并把右/下边缘保持在原位附近, 避免改大后越界。</summary>
         public void SetBallSize(double size)
@@ -90,8 +76,19 @@ namespace JQuick
             if (Top < area.Top) Top = area.Top;
 
             // 让正在显示的面板按新的球矩形重新贴位
-          
             _panel.RepositionBesideIfShown(new Rect(Left, Top, Width, Height));
+        }
+
+
+        /// <summary>实时设置悬浮球文字, 只取第一个字符(空则回退为 "J")。</summary>
+        public void SetBallText(string? text)
+        {
+            string ch = string.IsNullOrEmpty(text)
+                ? "J"
+                : text.Substring(0, 1);   // 只保留一个字
+
+            BallText.Text = ch;                       // BallText 是 XAML 里那个 TextBlock 控件
+            ConfigStore.Current.BallText = ch;        // 同步回配置
         }
 
 
@@ -132,7 +129,6 @@ namespace JQuick
             ConfigStore.Save();
         }
 
-
         public void SetBallColor(string hex)
         {
             var brush = MakeBrush(hex, "#0A84FF");
@@ -170,12 +166,6 @@ namespace JQuick
         private static string ColorToHex(Color c)
             => "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
 
-
-
-
-
-
-
         // ===== 悬停 / 拖入展开 =====
         private void Ball_MouseEnter(object sender, MouseEventArgs e)
         {
@@ -192,8 +182,17 @@ namespace JQuick
 
         private Rect BallRect => new Rect(Left, Top, ActualWidth, ActualHeight);
 
-        public void ShowBall() { Show(); Topmost = true; }
-        public void HideBall() { Hide(); }
+        // ★ 重复调用安全:已经可见就不再重复 Show
+        public void ShowBall()
+        {
+            if (!IsVisible) Show();
+            Topmost = true;
+        }
+
+        public void HideBall()
+        {
+            if (IsVisible) Hide();
+        }
 
         // ===== 边缘吸附 =====
         private void SnapToEdge()

@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:jui="clr-namespace:JUI.Controls;assembly=JUI"
         Title="设置"
-        Width="320" Height="200"
+        Width="320" 
+                 SizeToContent="Height"
         TitleBarMode="Normal"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
@@ -19,10 +20,7 @@
                Foreground="{DynamicResource Jui.Text.Primary}"/>
         </DockPanel>
         
-        <TextBlock Text="基础设置"
-                   FontSize="14" FontWeight="Bold"
-                   Foreground="{DynamicResource Jui.Text.Primary}"
-                   Margin="0,0,0,12"/>
+
 
         <!-- 开机自启动 -->
         <DockPanel Margin="0,0,0,12">
@@ -33,6 +31,41 @@
             <TextBlock Text="开机自启动"
                VerticalAlignment="Center"
                Foreground="{DynamicResource Jui.Text.Primary}"/>
+        </DockPanel>
+
+        <!-- 悬浮球文字 -->
+        <DockPanel Margin="0,0,0,12">
+            <jui:JuiTextBox x:Name="BallTextBox"
+             DockPanel.Dock="Right"
+             Width="32"
+             MaxLength="1"
+             HorizontalContentAlignment="Center"
+             VerticalContentAlignment="Center"
+             TextChanged="BallTextBox_TextChanged"/>
+            <TextBlock Text="悬浮球文字"
+               VerticalAlignment="Center"
+               Foreground="{DynamicResource Jui.Text.Primary}"/>
+        </DockPanel>
+     
+        <!-- 悬浮球背景色 -->
+        <DockPanel Margin="0,0,0,12">
+            <jui:JuiColorButton x:Name="BallColorBtn"
+                      DockPanel.Dock="Right"
+                      
+                      ColorChanged="BallColorBtn_ColorChanged"/>
+            <TextBlock Text="悬浮球颜色"
+             VerticalAlignment="Center"
+             Foreground="{DynamicResource Jui.Text.Primary}"/>
+        </DockPanel>
+        <!-- 悬浮球文字颜色 -->
+        <DockPanel Margin="0,0,0,12">
+            <jui:JuiColorButton x:Name="BallTextColorBtn"
+                      DockPanel.Dock="Right"
+                      
+                      ColorChanged="BallTextColorBtn_ColorChanged"/>
+            <TextBlock Text="文字颜色"
+             VerticalAlignment="Center"
+             Foreground="{DynamicResource Jui.Text.Primary}"/>
         </DockPanel>
         <!-- 悬浮球大小 -->
         <jui:JuiNumberBox x:Name="BallSizeBox"
@@ -58,35 +91,16 @@
 
         <!-- 悬浮球文字大小 -->
         <jui:JuiNumberBox x:Name="BallFontSizeBox"
-                  Label="文字大小"
-                  Unit="px"
-                  Minimum="8" Maximum="32"
-                  Step="1" Decimals="0"
-                  Margin="0,0,0,12"
-                  Value="{Binding BallFontSize, Mode=TwoWay,
-                                  UpdateSourceTrigger=PropertyChanged}"
-                  ValueChanged="BallFontSizeBox_ValueChanged"/>
-        <!-- 悬浮球背景色 -->
-        <DockPanel Margin="0,0,0,12">
-            <jui:JuiColorButton x:Name="BallColorBtn"
-                        DockPanel.Dock="Right"
-                        
-                        ColorChanged="BallColorBtn_ColorChanged"/>
-            <TextBlock Text="悬浮球颜色"
-               VerticalAlignment="Center"
-               Foreground="{DynamicResource Jui.Text.Primary}"/>
-        </DockPanel>
+           Label="文字大小"
+           Unit="px"
+           Minimum="8" Maximum="32"
+           Step="1" Decimals="0"
+           Margin="0,0,0,12"
+           Value="{Binding BallFontSize, Mode=TwoWay,
+                           UpdateSourceTrigger=PropertyChanged}"
+           ValueChanged="BallFontSizeBox_ValueChanged"/>
 
-        <!-- 悬浮球文字颜色 -->
-        <DockPanel Margin="0,0,0,12">
-            <jui:JuiColorButton x:Name="BallTextColorBtn"
-                        DockPanel.Dock="Right"
-                        
-                        ColorChanged="BallTextColorBtn_ColorChanged"/>
-            <TextBlock Text="文字颜色"
-               VerticalAlignment="Center"
-               Foreground="{DynamicResource Jui.Text.Primary}"/>
-        </DockPanel>
+  
 
         <!-- 打开配置文件夹 -->
         <Button Content="打开配置文件夹"
