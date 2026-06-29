@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:JQuick"
         xmlns:jui="clr-namespace:JUI.Controls;assembly=JUI"
         Title="图片剪贴板"
-        Width="400" Height="500"
+        Width="300" 
         TitleBarMode="NoTitleBar"
         ShowInTaskbar="False"
              
@@ -41,9 +41,9 @@
             </StackPanel>
         </Border>
         <!-- 图片剪贴板 -->
-        <local:ImageClipboardControl x:Name="ClipboardGrid"
+        <local:ImageClipboardControl x:Name="ClipboardGrid" Background="{DynamicResource Jui.Surface.Default}"
                                      DockPanel.Dock="Top"
-                                     ItemWidth="80" ItemHeight="80"
+                                     ItemWidth="70" ItemHeight="70"
                                      ItemSpacing="2" MaxRows="3"
                                      ItemCornerRadius="4">
             <local:ImageClipboardControl.EmptyContent>
@@ -81,16 +81,19 @@
         </local:ImageClipboardControl>
 
         <!-- 快捷方式启动器 -->
-        <local:AppLauncherControl x:Name="Launcher"
+        <local:AppLauncherControl x:Name="Launcher" Background="{DynamicResource Jui.Surface.Default}" Margin="0,4,0,0"
                                     DockPanel.Dock="Top"
-                                  ItemWidth="80" ItemHeight="90"
+                                  ItemWidth="70" ItemHeight="70"
                                   ItemSpacing="2" ItemCornerRadius="4">
             <local:AppLauncherControl.EmptyContent>
-                <TextBlock Text="暂无快捷方式，请将文件拖入此处"
+            
+                    <TextBlock Text="暂无快捷方式，请将文件拖入此处"
                    Foreground="{DynamicResource Jui.Text.Secondary}"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"/>
+                    
             </local:AppLauncherControl.EmptyContent>
+                    
             <local:AppLauncherControl.ItemTemplate>
                 <DataTemplate>
                     <Grid x:Name="ItemRoot" Background="Transparent">
@@ -102,20 +105,19 @@
                         </Grid.RowDefinitions>
 
                         <!-- 图标: 在上方区域水平垂直居中 -->
-                        <Grid Grid.Row="0" Width="48" Height="48"
-                  HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Border Background="#1A000000" CornerRadius="4"/>
+                       
+                          
                             <!-- 占位 -->
-                            <Image Source="{Binding Icon}"/>
+                            <Image Source="{Binding Icon}" Grid.Row="0" Width="40" Height="40"  HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             <!-- 加载完才显示 -->
-                        </Grid>
+                      
 
                         <!-- 名称: 一行, 靠下居中, 超出省略号 -->
-                        <TextBlock Grid.Row="1" Text="{Binding DisplayName}"
+                        <TextBlock Grid.Row="1" Text="{Binding DisplayName}" FontSize="10" FontFamily="Microsoft Baiti"
                        TextAlignment="Center"
                        TextTrimming="CharacterEllipsis"
                        Margin="2,2,2,4"
-                       Foreground="{DynamicResource Jui.Text.Primary}"/>
+                       Foreground="{DynamicResource Jui.Text.Secondary}"/>
 
                  
 
@@ -136,10 +138,19 @@
 
         </local:AppLauncherControl>
 
-        <local:FolderBoxControl x:Name="FolderBox"
+        <local:FolderBoxControl x:Name="FolderBox" Background="{DynamicResource Jui.Surface.Default}" Margin="0,4,0,0"
                                   DockPanel.Dock="Top"
-                        ItemWidth="120" ItemHeight="40"
+                        ItemWidth="110" ItemHeight="40"
                         ItemSpacing="2" ItemCornerRadius="8">
+            <local:FolderBoxControl.EmptyContent>
+              
+                    <TextBlock Text="暂无文件夹，将文件夹拖入此处"
+                               
+          Foreground="{DynamicResource Jui.Text.Secondary}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"/>
+           
+            </local:FolderBoxControl.EmptyContent>
             <local:FolderBoxControl.ItemTemplate>
                 <DataTemplate>
                     <Grid x:Name="ItemRoot" Background="Transparent">
@@ -163,12 +174,22 @@
             </local:FolderBoxControl.ItemTemplate>
         </local:FolderBoxControl>
 
-        <local:TextClipboardControl x:Name="TextClip"
+        
+        
+        
+        
+        
+        
+        <local:TextClipboardControl x:Name="TextClip" Background="{DynamicResource Jui.Surface.Default}" Margin="0,4,0,0"
                             DockPanel.Dock="Top"
                             ItemHeight="36" ItemSpacing="3"
                             ItemCornerRadius="6"
                             MaxVisibleItems="6">
             <local:TextClipboardControl.ItemTemplate>
+                
+  
+
+
                 <DataTemplate>
                     <Grid x:Name="ItemRoot" Background="Transparent">
                         <Border Background="#1A000000" CornerRadius="6"/>
@@ -192,6 +213,12 @@
                 </DataTemplate>
             </local:TextClipboardControl.ItemTemplate>
         </local:TextClipboardControl>
+
+
+        <TextBlock Text="1.0"
+        DockPanel.Dock="Bottom"
+      HorizontalAlignment="Center" VerticalAlignment="Bottom" TextTrimming="CharacterEllipsis"
+      Foreground="{DynamicResource Jui.Text.Primary}"/>
 
     </DockPanel>
 </jui:JuiWindow>
