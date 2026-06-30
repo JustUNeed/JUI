@@ -17,7 +17,7 @@
         <Setter Property="FontSize" Value="10"/>
         <Setter Property="ToolTip" Value="删除"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-        <Setter Property="BadgeBackground" Value="{DynamicResource Jui.Text.Secondary}"/>
+        <Setter Property="BadgeBackground" Value="{DynamicResource Jui.Surface.Hover}"/>
         <Setter Property="HoverBackground" Value="{DynamicResource Jui.Close.Hover}"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -27,7 +27,7 @@
                             CornerRadius="{Binding BadgeSize,
                                 RelativeSource={RelativeSource TemplatedParent},
                                 Converter={StaticResource Jui.HalfDoubleConverter}}">
-                        <TextBlock Text="{TemplateBinding Glyph}"
+                        <TextBlock x:Name="Tex" Text="{TemplateBinding Glyph}"
                                    FontFamily="{TemplateBinding FontFamily}"
                                    FontSize="{TemplateBinding FontSize}"
                                    Foreground="{TemplateBinding Foreground}"
@@ -39,7 +39,15 @@
                             <Setter TargetName="Bg" Property="Background"
                                     Value="{Binding HoverBackground,
                                         RelativeSource={RelativeSource TemplatedParent}}"/>
+                            <Setter TargetName="Tex" Property="Foreground"
+         Value="#FFFFFF"/>
+
+
                         </Trigger>
+                        
+                        
+                        
+                        
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

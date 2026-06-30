@@ -131,13 +131,41 @@ namespace JQuick
 
         private void CopyToClipboard(ClipTextItem item)
         {
+        
+              
+    
+
+
+
+
+
             if (item == null || string.IsNullOrEmpty(item.Text)) return;
-            try
+
+            JuiToast.Show("复制文本");
+            string text = item.Text;
+
+            // 剪贴板是全局唯一资源, 被别的进程占用时 Clipboard.SetText 会同步阻塞 UI 线程直到超时,
+            // 表现为"点一下卡住整个进程"。这里改为: 独立 STA 线程 + 自旋重试, UI 线程不参与等待。
+            var t = new System.Threading.Thread(() =>
             {
-                Clipboard.SetText(item.Text);
-                Copied?.Invoke(item);
-            }
-            catch { /* 剪贴板被占用等忽略 */ }
+                for (int i = 0; i < 5; i++)
+                {
+                    try
+                    {
+                        Clipboard.SetText(text);
+                        break;                 // 成功即退出
+                    }
+                    catch
+                    {
+                        System.Threading.Thread.Sleep(20);   // 被占用, 隔 20ms 再试
+                    }
+                }
+            });
+            t.SetApartmentState(System.Threading.ApartmentState.STA);   // 剪贴板操作必须在 STA 线程
+            t.IsBackground = true;
+            t.Start();
+
+            Copied?.Invoke(item);   // UI 反馈立即触发, 不等剪贴板写完
         }
 
         /// <summary>删除一项(从列表移除并持久化)。</summary>

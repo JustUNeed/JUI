@@ -8,7 +8,7 @@
               
         TitleBarMode="NoTitleBar"
         ShowInTaskbar="False"
-             
+              Topmost="True"
         AllowDrop="True">
     <jui:JuiWindow.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
@@ -45,8 +45,43 @@ Data="M235.32,81.37 174.63,20.69 a16,16,0,0,0-22.63,0 L98.37,74.49 c-10.66-3.34-
                         Click="SettingsButton_Click"/>
             </StackPanel>
         </Border>
+
+        <!--快捷文件夹 -->
+        <local:FolderBoxControl x:Name="FolderBox" Background="{DynamicResource Jui.Surface.Default}" 
+                                  DockPanel.Dock="Top"
+                        ItemWidth="110" ItemHeight="40"
+                         EmptyContent="暂无文件夹，将文件夹拖入此处"
+                        ItemSpacing="2" ItemCornerRadius="8">
+
+            <local:FolderBoxControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid x:Name="ItemRoot" Background="Transparent">
+                        <Border Background="{DynamicResource Jui.Surface.Hover}" >
+
+                            <TextBlock Text="{Binding DisplayName}" TextAlignment="Center" Margin="8" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Jui.Text.Primary}"/>
+
+                        </Border>
+
+                        <jui:JuiDeleteBadge Visibility="Hidden" x:Name="PART_DeleteButton"/>
+
+                    </Grid>
+                    <DataTemplate.Triggers>
+                        <Trigger SourceName="ItemRoot" Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PART_DeleteButton" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </DataTemplate.Triggers>
+                </DataTemplate>
+            </local:FolderBoxControl.ItemTemplate>
+        </local:FolderBoxControl>
+
+
+
+
+        
         <!-- 图片剪贴板 -->
-        <local:ImageClipboardControl x:Name="ClipboardGrid" Background="{DynamicResource Jui.Surface.Default}"
+        <local:ImageClipboardControl x:Name="ClipboardGrid" Background="{DynamicResource Jui.Surface.Default}" Margin="0,4,0,0"
                                      DockPanel.Dock="Top"
                                      ItemWidth="70" ItemHeight="70"
                                      ItemSpacing="2" MaxRows="3"
@@ -134,38 +169,7 @@ Data="M235.32,81.37 174.63,20.69 a16,16,0,0,0-22.63,0 L98.37,74.49 c-10.66-3.34-
 
         </local:AppLauncherControl>
 
-        <local:FolderBoxControl x:Name="FolderBox" Background="{DynamicResource Jui.Surface.Default}" Margin="0,4,0,0"
-                                  DockPanel.Dock="Top"
-                        ItemWidth="110" ItemHeight="40"
-                         EmptyContent="暂无文件夹，将文件夹拖入此处"
-                        ItemSpacing="2" ItemCornerRadius="8">
-   
-            <local:FolderBoxControl.ItemTemplate>
-                <DataTemplate>
-                    <Grid x:Name="ItemRoot" Background="Transparent">
-                        <Border Background="Black">
 
-                            <TextBlock Text="{Binding DisplayName}" TextAlignment="Center" Margin="8" VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis"
-                               Foreground="{DynamicResource Jui.Text.Primary}"/>
-
-                        </Border>
-
-                        <jui:JuiDeleteBadge Visibility="Hidden" x:Name="PART_DeleteButton"/>
-                        
-                    </Grid>
-                    <DataTemplate.Triggers>
-                        <Trigger SourceName="ItemRoot" Property="IsMouseOver" Value="True">
-                            <Setter TargetName="PART_DeleteButton" Property="Visibility" Value="Visible"/>
-                        </Trigger>
-                    </DataTemplate.Triggers>
-                </DataTemplate>
-            </local:FolderBoxControl.ItemTemplate>
-        </local:FolderBoxControl>
-
-        
-        
-        
         
         
         
