@@ -44,6 +44,7 @@
                             <!-- 空内容层: 列表为空时显示 -->
                             <ContentPresenter x:Name="PART_Empty"
                                               Content="{TemplateBinding EmptyContent}"
+                                                 TextElement.Foreground="{DynamicResource Jui.Text.Secondary}"
                                               HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               Visibility="Collapsed"/>

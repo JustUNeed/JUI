@@ -42,6 +42,7 @@
                             </ScrollViewer>
 
                             <ContentPresenter x:Name="PART_Empty"
+                                              TextElement.Foreground="{DynamicResource Jui.Text.Secondary}"
                                               Content="{TemplateBinding EmptyContent}"
                                               HorizontalAlignment="Center"
                                               VerticalAlignment="Center"

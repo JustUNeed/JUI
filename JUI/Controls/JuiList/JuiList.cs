@@ -579,10 +579,21 @@ namespace JUI.Controls
             if (ItemHeight <= 0) return;
             if (ItemsSource is not IList list) return;
 
-            double cellHeight = ItemHeight + ItemSpacing * 2;
+            // ★ 空列表: 交给 EmptyContent 决定高度, 不再按一行数据高强行压扁提示。
+            //   有 EmptyContent 时给一个能容纳提示的最小高度; 没有则放开高度由布局接管。
+            if (list.Count == 0)
+            {
+                if (EmptyContent != null)
+                    Height = Math.Max(EmptyHeight, ItemHeight)
+                             + Padding.Top + Padding.Bottom
+                             + BorderThickness.Top + BorderThickness.Bottom;
+                else
+                    ClearValue(HeightProperty);
+                return;
+            }
 
-            int rows = list.Count <= 0 ? 1 : list.Count;
-            int shownRows = Math.Min(rows, MaxVisibleItems);
+            double cellHeight = ItemHeight + ItemSpacing * 2;
+            int shownRows = Math.Min(list.Count, MaxVisibleItems);
 
             Height = shownRows * cellHeight + Padding.Top + Padding.Bottom
                      + BorderThickness.Top + BorderThickness.Bottom;
@@ -593,5 +604,18 @@ namespace JUI.Controls
             base.OnApplyTemplate();
             _scrollViewer = GetTemplateChild("PART_Scroll") as ScrollViewer;
         }
+
+        /// <summary>空列表时的最小高度(像素), 用于容纳 EmptyContent 提示。Grid 因项高大无需此项, List 项矮需要兜底。</summary>
+        public double EmptyHeight
+        {
+            get => (double)GetValue(EmptyHeightProperty);
+            set => SetValue(EmptyHeightProperty, value);
+        }
+        public static readonly DependencyProperty EmptyHeightProperty =
+            DependencyProperty.Register(nameof(EmptyHeight), typeof(double),
+                typeof(JuiList), new PropertyMetadata(80.0, OnLayoutAffectingChanged));
+
+
+
     }
 }

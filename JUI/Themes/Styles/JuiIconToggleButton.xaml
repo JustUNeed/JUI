@@ -33,7 +33,7 @@
                         <!-- 选中态: 强调色底 + 反白前景 -->
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Bd" Property="Background"
-                                    Value="{DynamicResource Jui.Accent}"/>
+                                    Value="{DynamicResource Jui.Surface.Active}"/>
                             <Setter Property="Foreground" Value="#FFFFFF"/>
                         </Trigger>
 

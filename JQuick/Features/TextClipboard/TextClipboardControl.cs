@@ -46,15 +46,21 @@ namespace JQuick
 
         private static void OnAnyButtonClick(object sender, RoutedEventArgs e)
         {
-            if (e.OriginalSource is FrameworkElement fe &&
-                fe.Name == "PART_DeleteButton" &&
-                sender is TextClipboardControl control)
+            if (sender is not TextClipboardControl control ||
+                e.OriginalSource is not FrameworkElement fe)
+                return;
+
+            if (control.GetItemFromElement(fe) is not ClipTextItem item) return;
+
+            if (fe.Name == "PART_DeleteButton")
             {
-                if (control.GetItemFromElement(fe) is ClipTextItem item)
-                {
-                    control.Remove(item);
-                    e.Handled = true;
-                }
+                control.Remove(item);
+                e.Handled = true;
+            }
+            else if (fe.Name == "PART_EditButton")
+            {
+                control.OpenEditor(item);
+                e.Handled = true;
             }
         }
 
@@ -139,6 +145,21 @@ namespace JQuick
         {
             if (item == null) return;
             RemoveItem(item);   // 触发 ContentChanged → 保存
+        }
+
+
+        /// <summary>打开多行编辑窗口编辑指定项; 关闭即保存(内容有变更才落盘)。</summary>
+        private void OpenEditor(ClipTextItem item)
+        {
+            if (item == null) return;
+
+            var win = new TextEditWindow(item)
+            {
+                Owner = Window.GetWindow(this),
+                // 编辑保存后整体落盘(沿用现有持久化: 按当前顺序保存全部文本)
+                Saved = () => _store?.Save(_items.Select(i => i.Text))
+            };
+            win.ShowDialog();
         }
     }
 }

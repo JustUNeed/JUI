@@ -25,16 +25,20 @@
                 MouseLeftButtonUp="DragBar_MouseLeftButtonUp">
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right">
-                
-                
+
+
                 <jui:JuiIconToggleButton x:Name="PinToggle"
-                              Content="常驻模式"
+                            
                               Margin="0,0,6,0"
                               Checked="PinToggle_Changed"
-                              Unchecked="PinToggle_Changed"/>
-                
-                
-                
+                              Unchecked="PinToggle_Changed">
+                    <Path Stretch="Uniform" Width="16" Height="16"
+Fill="{Binding Path=(TextElement.Foreground), RelativeSource={RelativeSource AncestorType=Control}}"
+Data="M235.32,81.37 174.63,20.69 a16,16,0,0,0-22.63,0 L98.37,74.49 c-10.66-3.34-35-7.37-60.4,13.14 a16,16,0,0,0-1.29,23.78 L85,159.71 42.34,202.34 a8,8,0,0,0,11.32,11.32 L96.29,171 l48.29,48.29 A16,16,0,0,0,155.9,224 c.38,0,.75,0,1.13,0 a15.93,15.93,0,0,0,11.64-6.33 c19.64-26.1,17.75-47.32,13.19-60 L235.33,104 A16,16,0,0,0,235.32,81.37 Z M224,92.69 h0 l-57.27,57.46 a8,8,0,0,0-1.49,9.22 c9.46,18.93-1.8,38.59-9.34,48.62 L48,100.08 c12.08-9.74,23.64-12.31,32.48-12.31 A40.13,40.13,0,0,1,96.81,91 a8,8,0,0,0,9.25-1.51 L163.32,32 224,92.68 Z"/>
+
+                </jui:JuiIconToggleButton>
+
+
                 <Button x:Name="SettingsButton"
                         Content="设置"
                         Padding="8,2"
@@ -46,13 +50,9 @@
                                      DockPanel.Dock="Top"
                                      ItemWidth="70" ItemHeight="70"
                                      ItemSpacing="2" MaxRows="3"
+                                      EmptyContent="暂无图片，粘贴图片或拖入此处" 
                                      ItemCornerRadius="4">
-            <local:ImageClipboardControl.EmptyContent>
-                <TextBlock Text="暂无图片，复制图片或拖入此处"
-                   Foreground="{DynamicResource Jui.Text.Secondary}"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"/>
-            </local:ImageClipboardControl.EmptyContent>
+        
             <local:ImageClipboardControl.ItemTemplate>
                 <DataTemplate>
         
@@ -85,15 +85,10 @@
         <local:AppLauncherControl x:Name="Launcher" Background="{DynamicResource Jui.Surface.Default}" Margin="0,4,0,0"
                                     DockPanel.Dock="Top"
                                   ItemWidth="70" ItemHeight="70"
+                                    EmptyContent="暂无快捷方式，请将文件拖入此处"
                                   ItemSpacing="2" ItemCornerRadius="4">
-            <local:AppLauncherControl.EmptyContent>
+     
             
-                    <TextBlock Text="暂无快捷方式，请将文件拖入此处"
-                   Foreground="{DynamicResource Jui.Text.Secondary}"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"/>
-                    
-            </local:AppLauncherControl.EmptyContent>
                     
             <local:AppLauncherControl.ItemTemplate>
                 <DataTemplate>
@@ -142,16 +137,9 @@
         <local:FolderBoxControl x:Name="FolderBox" Background="{DynamicResource Jui.Surface.Default}" Margin="0,4,0,0"
                                   DockPanel.Dock="Top"
                         ItemWidth="110" ItemHeight="40"
+                         EmptyContent="暂无文件夹，将文件夹拖入此处"
                         ItemSpacing="2" ItemCornerRadius="8">
-            <local:FolderBoxControl.EmptyContent>
-              
-                    <TextBlock Text="暂无文件夹，将文件夹拖入此处"
-                               
-          Foreground="{DynamicResource Jui.Text.Secondary}"
-          HorizontalAlignment="Center"
-          VerticalAlignment="Center"/>
-           
-            </local:FolderBoxControl.EmptyContent>
+   
             <local:FolderBoxControl.ItemTemplate>
                 <DataTemplate>
                     <Grid x:Name="ItemRoot" Background="Transparent">
@@ -183,35 +171,47 @@
         
         <local:TextClipboardControl x:Name="TextClip" Background="{DynamicResource Jui.Surface.Default}" Margin="0,4,0,0"
                             DockPanel.Dock="Top"
-                            ItemHeight="36" ItemSpacing="3"
-                            ItemCornerRadius="6"
+                            ItemHeight="36" ItemSpacing="2"
+                            ItemCornerRadius="2"
+                                     EmptyContent="暂无文本项，粘贴文本或拖入此处"
                             MaxVisibleItems="6">
             <local:TextClipboardControl.ItemTemplate>
-                
-  
+
+
 
 
                 <DataTemplate>
                     <Grid x:Name="ItemRoot" Background="Transparent">
-                        <Border Background="#1A000000" CornerRadius="6"/>
+                     
 
                         <TextBlock Text="{Binding Preview}"
-                           VerticalAlignment="Center"
-                           Margin="10,0,28,0"
-                           TextTrimming="CharacterEllipsis"
-                           Foreground="{DynamicResource Jui.Text.Primary}"/>
+                   VerticalAlignment="Center"
+                   Margin="10,0,50,0"
+                   TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource Jui.Text.Primary}"
+                                   ToolTip="{Binding Preview}"/>
 
-                        <jui:JuiDeleteBadge x:Name="PART_DeleteButton"
-                    Visibility="Hidden"
-                    VerticalAlignment="Center" Margin="0,0,6,0"
-                   />
+                        <!-- 右侧操作按钮: 编辑 + 删除, 悬浮才显示 -->
+                        <DockPanel Grid.Row="0" 
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Margin="0,0,0,0">
+                            <jui:JuiDeleteBadge x:Name="PART_EditButton"
+                                Visibility="Hidden"
+                                Glyph="&#xE70F;"
+                                ToolTip="编辑"/>
+                            <jui:JuiDeleteBadge x:Name="PART_DeleteButton"
+                                Visibility="Hidden"/>
+                        </DockPanel>
                     </Grid>
                     <DataTemplate.Triggers>
                         <Trigger SourceName="ItemRoot" Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PART_EditButton" Property="Visibility" Value="Visible"/>
                             <Setter TargetName="PART_DeleteButton" Property="Visibility" Value="Visible"/>
                         </Trigger>
                     </DataTemplate.Triggers>
                 </DataTemplate>
+
             </local:TextClipboardControl.ItemTemplate>
         </local:TextClipboardControl>
 

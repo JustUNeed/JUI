@@ -583,12 +583,26 @@ namespace JUI.Controls
         }
 
         /// <summary>按当前宽度和数据量算出固定高度。批量更新期间挂起, 结束补算。</summary>
+        /// <summary>按当前宽度和数据量算出固定高度。批量更新期间挂起, 结束补算。</summary>
         private void RecomputeHeight()
         {
             if (_bulkDepth > 0) { _heightDirty = true; return; }
 
             if (ItemHeight <= 0 || ActualWidth <= 0) return;
             if (ItemsSource is not IList list) return;
+
+            // ★ 空列表: 交给 EmptyContent 决定高度, 不再按一行项高凑。
+            //   有 EmptyContent 时给一个能容纳提示的最小高度; 没有则放开高度由外部布局接管。
+            if (list.Count == 0)
+            {
+                if (EmptyContent != null)
+                    Height = Math.Max(EmptyHeight, ItemHeight)
+                             + Padding.Top + Padding.Bottom
+                             + BorderThickness.Top + BorderThickness.Bottom;
+                else
+                    ClearValue(HeightProperty);
+                return;
+            }
 
             double cellWidth = ItemWidth + ItemSpacing * 2;
             double cellHeight = ItemHeight + ItemSpacing * 2;
@@ -599,12 +613,13 @@ namespace JUI.Controls
             int cols = available > 0 && cellWidth > 0
                 ? Math.Max(1, (int)(available / cellWidth)) : 1;
 
-            int rows = list.Count <= 0 ? 1 : (int)Math.Ceiling(list.Count / (double)cols);
+            int rows = (int)Math.Ceiling(list.Count / (double)cols);
             int shownRows = Math.Min(rows, Math.Max(1, MaxRows));
 
             Height = shownRows * cellHeight + Padding.Top + Padding.Bottom
                      + BorderThickness.Top + BorderThickness.Bottom;
         }
+
 
         public override void OnApplyTemplate()
         {
@@ -624,5 +639,17 @@ namespace JUI.Controls
                     _scrollViewer.ScrollToVerticalOffset(max);
             }));
         }
+
+        /// <summary>空列表时的最小高度(像素), 用于容纳 EmptyContent 提示。
+        /// 设置了 EmptyContent 时生效; 未设置则空态放开高度交给外部布局。</summary>
+        public double EmptyHeight
+        {
+            get => (double)GetValue(EmptyHeightProperty);
+            set => SetValue(EmptyHeightProperty, value);
+        }
+        public static readonly DependencyProperty EmptyHeightProperty =
+            DependencyProperty.Register(nameof(EmptyHeight), typeof(double),
+                typeof(JuiGrid), new PropertyMetadata(120.0, OnLayoutAffectingChanged));
+
     }
 }

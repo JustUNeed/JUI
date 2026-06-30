@@ -5,7 +5,7 @@
 
     <Style TargetType="{x:Type controls:JuiButton}">
         <Setter Property="Background" Value="{DynamicResource Jui.Accent}"/>
-        <Setter Property="Foreground" Value="#FFFFFF"/>
+        <Setter Property="Foreground" Value="{DynamicResource   Jui.Text.Primary}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="14,6"/>
         <Setter Property="FontSize" Value="12"/>
