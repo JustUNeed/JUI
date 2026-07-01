@@ -14,12 +14,12 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </jui:JuiWindow.Resources>
 
-    <DockPanel x:Name="PanelRoot" Margin="8">
+    <DockPanel x:Name="PanelRoot" Margin="4">
         <!-- 顶部工具行: 常驻态下作为拖动手柄 -->
         <Border x:Name="DragBar"
                 DockPanel.Dock="Top"
                 Background="Transparent"
-                Margin="0,0,0,6"
+               
                 MouseLeftButtonDown="DragBar_MouseLeftButtonDown"
                 MouseMove="DragBar_MouseMove"
                 MouseLeftButtonUp="DragBar_MouseLeftButtonUp">
@@ -29,20 +29,16 @@
 
                 <jui:JuiIconToggleButton x:Name="PinToggle"
                             
-                              Margin="0,0,6,0"
+                            
                               Checked="PinToggle_Changed"
                               Unchecked="PinToggle_Changed">
-                    <Path Stretch="Uniform" Width="16" Height="16"
+                    <Path Stretch="Uniform" Width="12" Height="12"
 Fill="{Binding Path=(TextElement.Foreground), RelativeSource={RelativeSource AncestorType=Control}}"
 Data="M235.32,81.37 174.63,20.69 a16,16,0,0,0-22.63,0 L98.37,74.49 c-10.66-3.34-35-7.37-60.4,13.14 a16,16,0,0,0-1.29,23.78 L85,159.71 42.34,202.34 a8,8,0,0,0,11.32,11.32 L96.29,171 l48.29,48.29 A16,16,0,0,0,155.9,224 c.38,0,.75,0,1.13,0 a15.93,15.93,0,0,0,11.64-6.33 c19.64-26.1,17.75-47.32,13.19-60 L235.33,104 A16,16,0,0,0,235.32,81.37 Z M224,92.69 h0 l-57.27,57.46 a8,8,0,0,0-1.49,9.22 c9.46,18.93-1.8,38.59-9.34,48.62 L48,100.08 c12.08-9.74,23.64-12.31,32.48-12.31 A40.13,40.13,0,0,1,96.81,91 a8,8,0,0,0,9.25-1.51 L163.32,32 224,92.68 Z"/>
 
                 </jui:JuiIconToggleButton>
 
 
-                <Button x:Name="SettingsButton"
-                        Content="设置"
-                        Padding="8,2"
-                        Click="SettingsButton_Click"/>
             </StackPanel>
         </Border>
 
@@ -190,9 +186,9 @@ Data="M235.32,81.37 174.63,20.69 a16,16,0,0,0-22.63,0 L98.37,74.49 c-10.66-3.34-
 
                         <TextBlock Text="{Binding Preview}"
                    VerticalAlignment="Center"
-                   Margin="10,0,50,0"
+                   Margin="10,0,10,0"
                    TextTrimming="CharacterEllipsis"
-                   Foreground="{DynamicResource Jui.Text.Primary}"
+                   Foreground="{DynamicResource Jui.Text.Secondary}"
                                    ToolTip="{Binding Preview}"/>
 
                         <!-- 右侧操作按钮: 编辑 + 删除, 悬浮才显示 -->
@@ -220,7 +216,7 @@ Data="M235.32,81.37 174.63,20.69 a16,16,0,0,0-22.63,0 L98.37,74.49 c-10.66-3.34-
         </local:TextClipboardControl>
 
 
-        <TextBlock Text="1.0"
+        <TextBlock Text=""
         DockPanel.Dock="Bottom"
       HorizontalAlignment="Center" VerticalAlignment="Bottom" TextTrimming="CharacterEllipsis"
       Foreground="{DynamicResource Jui.Text.Primary}"/>

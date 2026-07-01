@@ -6,9 +6,9 @@
     <Style TargetType="{x:Type controls:JuiTextBox}">
         <Setter Property="Background" Value="{DynamicResource Jui.Surface.Default}"/>
         <Setter Property="Foreground" Value="{DynamicResource Jui.Text.Primary}"/>
-        <Setter Property="CaretBrush" Value="{DynamicResource Jui.Text.Primary}"/>
-        <Setter Property="SelectionBrush" Value="{DynamicResource Jui.Accent}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource Jui.Border}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Jui.Text.Secondary}"/>
+        <Setter Property="SelectionBrush" Value="{DynamicResource Jui.Text.Secondary}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="2"/>
         <Setter Property="FontSize" Value="12"/>
@@ -47,11 +47,14 @@
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Bd" Property="BorderBrush"
-                                    Value="{DynamicResource Jui.Accent.Hover}"/>
+                                    Value="{DynamicResource Jui.Text.Disabled}"/>
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Bd" Property="BorderBrush"
-                                    Value="{DynamicResource Jui.Accent}"/>
+                                    Value="{DynamicResource Jui.Text.Secondary}"/>
+
+                         
+                            
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Bd" Property="Background"

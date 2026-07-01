@@ -4,10 +4,11 @@
     xmlns:controls="clr-namespace:JUI.Controls">
 
     <Style TargetType="{x:Type controls:JuiButton}">
-        <Setter Property="Background" Value="{DynamicResource Jui.Accent}"/>
+        <Setter Property="Background" Value="{DynamicResource Jui.Surface.Default}"/>
         <Setter Property="Foreground" Value="{DynamicResource   Jui.Text.Primary}"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Padding" Value="14,6"/>
+        <Setter Property="Padding" Value="14,10"/>
+      
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
@@ -26,10 +27,10 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Bd" Property="Background"
-                                    Value="{DynamicResource Jui.Accent.Hover}"/>
+                                    Value="{DynamicResource Jui.Surface.Hover}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Opacity" Value="0.85"/>
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Bd" Property="Background"

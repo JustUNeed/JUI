@@ -103,9 +103,9 @@
   
 
         <!-- 打开配置文件夹 -->
-        <Button Content="打开配置文件夹"
+        <jui:JuiButton Content="打开配置文件夹"
                 HorizontalAlignment="Left"
-                Padding="12,4"
+                
                 Click="OpenConfigFolder_Click"/>
     </StackPanel>
 </jui:JuiWindow>

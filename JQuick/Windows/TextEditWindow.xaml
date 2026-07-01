@@ -13,21 +13,20 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Margin="0,10,0,0">
-            <Button Content="保存并关闭"
-                    Padding="12,4"
+            <jui:JuiButton Content="保存并关闭"
+                    
                     Click="Save_Click"/>
         </StackPanel>
 
         <!-- 多行编辑区 -->
-        <TextBox x:Name="Editor"
+        <jui:JuiTextBox x:Name="Editor"
+                        FontSize="16"
                  AcceptsReturn="True"
                  AcceptsTab="True"
                  TextWrapping="Wrap"
                  VerticalScrollBarVisibility="Auto"
                  VerticalContentAlignment="Top"
-                 Background="{DynamicResource Jui.Surface.Window}"
-                 Foreground="{DynamicResource Jui.Text.Primary}"
-                 BorderBrush="{DynamicResource Jui.Border}"
-                 Padding="8"/>
+                 
+                 Padding="2"/>
     </DockPanel>
 </jui:JuiWindow>
